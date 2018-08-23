@@ -22,22 +22,25 @@ module Compiler where
   ... | true  = val
   ... | false = get-value name vs
 
-------------------------------
--- Expression-tree language --
-------------------------------
+----------------------------
+-- Expression definitions --
+----------------------------
 
-  -- definition of Expression-tree Language (ETL)
-  data Exp : Set where  
-    nat   : ℕ → Exp
-    var   : String → Exp
-    _+_   : Exp → Exp → Exp
+  -- Arithmetic Expressions
+  data AExp : Set where  
+    NAT   : ℕ → AExp
+    VAR   : String → AExp
+    _+_   : AExp → AExp → AExp
 
-
-  -- function: execute ETL program
-  exe : Exp → List Var → ℕ
-  exe (nat n)    _     = n
-  exe (var name) state = get-value name state 
-  exe (x + y)    state = (exe x state) ℕ+ (exe y state)
+  -- Boolean Expressions
+  data BExp : Set where
+    
+    
+  -- Execute arithmetic expressions
+  aexe : AExp → List Var → ℕ
+  aexe (nat n)    _     = n
+  aexe (var name) state = get-value name state 
+  aexe (x + y)    state = (aexe x state) ℕ+ (aexe y state)
 
 
 --------------------
