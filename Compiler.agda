@@ -1,26 +1,34 @@
 module Compiler where
 
   -- Data... files are imported from agda-stdlib
-  open import Data.Nat.Base renaming (_+_ to _ℕ+_)
+  open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
+  open import Agda.Builtin.Equality
   open import Data.String.Base
-  open import Data.List
   open import Data.Bool
   open import Proofs.NatProofs
   open import Proofs.Basic
-  open import Agda.Builtin.Equality
+  open import Misc.Base
 
 -------------------------
 -- Variable definition --
 -------------------------
 
   data Var : Set₁ where
-    _:=_ : (name : String) → (val : ℕ) → Var
+    _≔_ : (name : String) → (val : ℕ) → Var
 
-  get-value : (name : String) → List Var → ℕ
-  get-value name [] = 0
-  get-value name ((x := val) ∷ vs) with primStringEquality name x
-  ... | true  = val
-  ... | false = get-value name vs
+
+  data State : Set₁ where
+    ⟦⟧   : State
+    _∷_ : Var → State → State
+
+  get-var : String → State → ℕ
+  get-var name ⟦⟧ = 0
+  get-var name ((x ≔ val) ∷ vs) = if (primStringEquality name x) then val else (get-var name vs)
+
+  set-var : String → ℕ → State → State
+  set-var name newval ⟦⟧ = (name ≔ newval) ∷ ⟦⟧
+  set-var name newval ((x ≔ val) ∷ vs) = if (primStringEquality name x) then ((x ≔ newval) ∷ ⟦⟧) else (((x ≔ val) ∷ (set-var name newval vs)))
+
 
 ----------------------------
 -- Expression definitions --
@@ -34,16 +42,61 @@ module Compiler where
 
   -- Boolean Expressions
   data BExp : Set where
+    BOOL    : Bool → BExp
+    NOT     : BExp → BExp
+    _AND_   : BExp → BExp → BExp
+    _LT_    : AExp → AExp → BExp
+
+  -- Instructions
+  infixl 20 _⋯_
+  data IExp : Set where
+    SKIP          : IExp
+    _≔_          : String → AExp → IExp
+    _⋯_          : IExp   → IExp → IExp
+    IF_THEN_ELSE_ : BExp   → IExp → IExp → IExp
+    WHILE_DO_     : BExp   → IExp → IExp
+
+  data BigStep : State → State → Set where
+    Skip   : ∀ {s} → BigStep s s
+    Assign : ∀ {s1 s2} → BigStep s1 s2
+    Seq    : ∀ {s1 s2 s3} → BigStep s1 s2 → BigStep s2 s3 → BigStep s1 s3
+    IfTrue : ∀ {s1 s2} → 
     
-    
+
+
   -- Execute arithmetic expressions
-  aexe : AExp → List Var → ℕ
-  aexe (nat n)    _     = n
-  aexe (var name) state = get-value name state 
+  aexe : AExp → State → ℕ
+  aexe (NAT val)  _     = val
+  aexe (VAR name) state = get-var name state 
   aexe (x + y)    state = (aexe x state) ℕ+ (aexe y state)
 
+  -- Execute boolean expressions
+  bexe : BExp → State → Bool
+  bexe (BOOL b)  _     = b
+  bexe (NOT x)   state = not (bexe x state)
+  bexe (x AND y) state = (bexe x state) ∧ (bexe y state)
+  bexe (m LT n)  state = (aexe m state) < (aexe n state)
 
---------------------
+  -- Execute instructions
+  iexe : IExp → State → State
+  
+  iexe SKIP state
+    = state
+    
+  iexe (name ≔ value) state
+    = set-var name (aexe value state) state
+    
+  iexe (this ⋯ that) state
+    = iexe that (iexe this state)
+    
+  iexe (IF bool THEN this ELSE that) state
+    = if (bexe bool state) then (iexe this state) else (iexe that state)
+
+  iexe (WHILE bool DO this) state = iexe this state
+
+  
+
+{---------------------
 -- Stack language --
 --------------------
 
@@ -75,13 +128,13 @@ module Compiler where
   exs : ∀ {x y} → Path x y → List Var → Stack x → Stack y
   exs ─ _ stack = stack
   exs ((loadi val) :: xs) env stack            = exs xs env (val                  , stack)
-  exs ((load name) :: xs) env stack            = exs xs env ((get-value name env) , stack)
+  exs ((load name) :: xs) env stack            = exs xs env ((get-var name env) , stack)
   exs (add         :: xs) env (y1 , y2 , rest) = exs xs env ((y2 ℕ+ y1)           , rest)
-
+-}
 --------------
 -- Compiler --
 --------------
-
+{-
   -- function: compile ETL to SML
   compile : ∀ {n} → Exp → Path n (suc n)
   compile (nat val)  = (loadi val) :: ─
@@ -98,7 +151,7 @@ module Compiler where
   >>-ex _ _ ─ b = refl
   >>-ex env s (a :: as) b with a | s
   ... | loadi val | ss             = >>-ex env (val                  , ss) as b
-  ... | load name | ss             = >>-ex env ((get-value name env) , ss) as b
+  ... | load name | ss             = >>-ex env ((get-var name env) , ss) as b
   ... | add       | (s1 , s2 , ss) = >>-ex env ((s2 ℕ+ s1)           , ss) as b
   
   -- verification of compiler
@@ -106,3 +159,4 @@ module Compiler where
   verify (nat val)  _ _ = refl
   verify (var name) _ _ = refl
   verify (exp₁ + exp₂) xs env rewrite >>-ex env xs ((compile exp₁) >> (compile exp₂)) (add :: ─) | >>-ex env xs (compile exp₁) (compile exp₂) | sym (verify exp₁ xs env) | sym (verify exp₂ (exe exp₁ env , xs) env) = refl
+-}
