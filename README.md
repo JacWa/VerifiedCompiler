@@ -1,1 +1,1 @@
-# AgdaCompiler
+# VerifiedCompiler
