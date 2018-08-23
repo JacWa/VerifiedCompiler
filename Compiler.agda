@@ -1,5 +1,6 @@
 module Compiler where
 
+  -- Data... files are imported from agda-stdlib
   open import Data.Nat.Base renaming (_+_ to _ℕ+_)
   open import Data.String.Base
   open import Data.List
@@ -55,8 +56,7 @@ module Compiler where
     load  : ∀ {h} → String → Inst h (suc h)
     add   : ∀ {h}           → Inst (suc (suc h)) (suc h)
 
-  -- definition of list of Inst, i.e. a stack program. indexed by two numbers representing
-  -- stack height before and after program execution respectively.
+  -- definition of list of Inst, i.e. a stack program. indexed by two numbers representing stack height before and after program execution respectively.
   infixr 20 _::_
   data Path : ℕ → ℕ → Set where
     ─     : ∀ {x} → Path x x
