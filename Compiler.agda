@@ -13,11 +13,11 @@ module Compiler where
 -- Variable definition --
 -------------------------
 
-  data Var : Set₁ where
+  data Var : Set where
     _≔_ : (name : String) → (val : ℕ) → Var
 
 
-  data State : Set₁ where
+  data State : Set where
     ⟦⟧   : State
     _∷_ : Var → State → State
 
@@ -52,16 +52,9 @@ module Compiler where
   data IExp : Set where
     SKIP          : IExp
     _≔_          : String → AExp → IExp
-    _⋯_          : IExp   → IExp → IExp
-    IF_THEN_ELSE_ : BExp   → IExp → IExp → IExp
-    WHILE_DO_     : BExp   → IExp → IExp
-
-  data BigStep : State → State → Set where
-    Skip   : ∀ {s} → BigStep s s
-    Assign : ∀ {s1 s2} → BigStep s1 s2
-    Seq    : ∀ {s1 s2 s3} → BigStep s1 s2 → BigStep s2 s3 → BigStep s1 s3
-    IfTrue : ∀ {s1 s2} → 
-    
+    _⋯_          : IExp → IExp → IExp
+    IF_THEN_ELSE_ : BExp → IExp → IExp → IExp
+    WHILE_DO_     : BExp → IExp → IExp
 
 
   -- Execute arithmetic expressions
@@ -77,23 +70,20 @@ module Compiler where
   bexe (x AND y) state = (bexe x state) ∧ (bexe y state)
   bexe (m LT n)  state = (aexe m state) < (aexe n state)
 
+  --BigStep
+  data [_,_]↦_ : IExp → State → State → Set where
+    Skip       : ∀ {s} → [ SKIP , s ]↦ s
+    Assign     : ∀ {x n s} → [ (x ≔ n) , s ]↦ (set-var x (aexe n s) s)
+    Seq        : ∀ {s1 s2 s3 this that} → [ this , s1 ]↦ s2 → [ that , s2 ]↦ s3 → [ (this ⋯ that) , s1 ]↦ s3
+    IfFalse    : ∀ {s t bool this that}{p : (bexe bool s) ≡ false} → [ that , s ]↦ t → [ (IF bool THEN this ELSE that) , s ]↦ t
+    IfTrue     : ∀ {s t bool this that}{p : (bexe bool s) ≡ true}  → [ this , s ]↦ t → [ (IF bool THEN this ELSE that) , s ]↦ t
+    WhileFalse : ∀ {s bool this}{p : (bexe bool s) ≡ false} → [ (WHILE bool DO this) , s ]↦ s
+    WhileTrue  : ∀ {s1 s2 s3 bool this}{p : (bexe bool s1) ≡ true} → (first : [ this , s1 ]↦ s2) → (then : [ (WHILE bool DO this) , s2 ]↦ s3) → [ (WHILE bool DO this) , s1 ]↦ s3
+
   -- Execute instructions
-  iexe : IExp → State → State
+
   
-  iexe SKIP state
-    = state
-    
-  iexe (name ≔ value) state
-    = set-var name (aexe value state) state
-    
-  iexe (this ⋯ that) state
-    = iexe that (iexe this state)
-    
-  iexe (IF bool THEN this ELSE that) state
-    = if (bexe bool state) then (iexe this state) else (iexe that state)
-
-  iexe (WHILE bool DO this) state = iexe this state
-
+  
   
 
 {---------------------
