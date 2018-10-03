@@ -16,10 +16,7 @@ module Lang.Stack where
 -- Stack language --
 --------------------
 
-  {-- data δh : Set where
-    δh=   : ℤ → δh  --}
-
-  
+  -- Have to use stack height difference instead of set stack heights, as jumps make it possible for an instruction to apply to the stack at different heights.
 
   data Inst : {mh : ℕ} → (Diff mh) → Set where
     LOADI   : ℕ → Inst +one
@@ -40,18 +37,20 @@ module Lang.Stack where
   ...                                                | true  = config state (head , (next , rest)) (suc pc) -- if next ≮ head, continue
   ...                                                | false = config state (head , (next , rest)) (x)      -- if next < head, jump
   iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ...                                                | true  = config state (head , (next , rest)) (x)      -- if next ≤ head, jump
-  ...                                                | false = config state (head , (next , rest)) (suc pc) -- if next ≰ head, continue
-  iexe {2} {1} {_} {_} {s≤s ()}
-  iexe {2} {0} {_} {_} {}
-  iexe {1} {0} {_} {_} {}
-
- {--  data Prog : ℕ → ℕ → ℕ → Set where
-    []   : ∀ {x} → Prog x x 0
-    _∷_ : ∀ {x y z p} → Inst x y → Prog y z p → Prog x z (suc p)
+  ...                                                | true  = config state (head , (next , rest)) (x)      -- if next ≥ head, jump
+  ...                                                | false = config state (head , (next , rest)) (suc pc) -- if next ≱ head, continue
+  iexe {2} {1} {p1 = (s≤s ())}
+  iexe {2} {0} {p1 = ()}
+  iexe {1} {0} {p1 = ()}
 
 
-  exe : ∀ {x y p} → Prog x y p → Config x → Config y
+
+  data Prog : ℕ → ℕ → Set where
+    []   : Prog 0 0
+    _∷_ : ∀ {pc omh nmh}{hd : Diff nmh} → (Inst hd) → Prog pc omh → Prog (suc pc) nmh
+
+
+{--  exe : ∀ {x y p} → Prog x y p → Config x → Config y
   exe [] c = c
 --}  
 

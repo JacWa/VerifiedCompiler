@@ -50,6 +50,9 @@ module Base.DataStructures where
   getState : ∀ {h} → Config h → State
   getState (config state _ _) = state
 
+  getPC : ∀ {h} → Config h → ℕ
+  getPC (config _ _ pc) = pc
+
   gssc : {h : ℕ}{pc : ℕ}{stack : Stack h}{state : State} → state ≡ getState (config state stack pc)
   gssc = refl
 
