@@ -57,8 +57,8 @@ module Base.DataStructures where
 
   data Diff : ℕ → Set where
     +one    : Diff 0
-    none'nj : Diff 2
-    none'cj : Diff 0
+    none'nj : Diff 0
+    none'cj : Diff 2
     -one'st : Diff 1
     -one'ad : Diff 2
 

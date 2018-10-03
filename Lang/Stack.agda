@@ -30,18 +30,21 @@ module Lang.Stack where
     JMPLESS : ℕ → Inst none'cj
     JMPGE   : ℕ → Inst none'cj
     
-  iexe : ∀ {mh x y}{hd : Diff mh}{p1 : mh ≤ x} → Inst hd → Config x → Config y
-  iexe (LOADI n)    (config state stack pc)                  = config state (n , stack) (suc pc)
-  iexe (LOAD name)  (config state stack pc)                  = config state ((get-var name state) , stack) (suc pc)
-  iexe ADD          (config state (head , (next , rest)) pc) = config state ((head ℕ+ next) , rest) (suc pc)
-  iexe (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (suc pc)
-  iexe (JMP x)      (config state stack pc)                  = config state stack (x)
-  iexe (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
+  iexe : ∀ {mh x y}{hd : Diff mh}{p1 : mh ≤ x}(p2 : y ≡ (diff x hd {p1})) → Inst hd → Config x → Config y
+  iexe refl (LOADI n)    (config state stack pc)                  = config state (n , stack) (suc pc)
+  iexe refl (LOAD name)  (config state stack pc)                  = config state ((get-var name state) , stack) (suc pc)
+  iexe refl ADD          (config state (head , (next , rest)) pc) = config state ((head ℕ+ next) , rest) (suc pc)
+  iexe refl (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (suc pc)
+  iexe refl (JMP x)      (config state stack pc)                  = config state stack (x)
+  iexe refl (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
   ...                                                | true  = config state (head , (next , rest)) (suc pc) -- if next ≮ head, continue
   ...                                                | false = config state (head , (next , rest)) (x)      -- if next < head, jump
   iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
   ...                                                | true  = config state (head , (next , rest)) (x)      -- if next ≤ head, jump
   ...                                                | false = config state (head , (next , rest)) (suc pc) -- if next ≰ head, continue
+  iexe {2} {1} {_} {_} {s≤s ()}
+  iexe {2} {0} {_} {_} {}
+  iexe {1} {0} {_} {_} {}
 
  {--  data Prog : ℕ → ℕ → ℕ → Set where
     []   : ∀ {x} → Prog x x 0
