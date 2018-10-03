@@ -94,7 +94,3 @@ module Proofs.NatProofs where
     =<^r {y = y} 1 p rewrite *comm y (y ^ 0) | +0 y = p
     =<^r {y = 0} (suc (suc n)) p rewrite *0 n = p
     =<^r {y = suc y} (suc (suc n)) p = =<*r (suc y) (=<^r (suc n) p)
-
-    test : (n : ℕ) → n + 2 ≡ (suc n) + 1
-    test 0 = refl
-    test (suc x) rewrite test x = refl

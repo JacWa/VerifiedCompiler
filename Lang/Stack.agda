@@ -1,18 +1,56 @@
 module Lang.Stack where
 
   -- Data.* files are imported from agda-stdlib
-  open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
+  open import Data.Nat.Base renaming (_+_ to _ℕ+_)
+  open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Equality
   open import Data.String.Base
   open import Data.Bool
+  open import Proofs.NumProofs
   open import Proofs.NatProofs
   open import Proofs.Basic
-  open import Misc.Base
+  open import Misc.Base 
   open import Base.DataStructures
 
 --------------------
 -- Stack language --
 --------------------
+
+  {-- data δh : Set where
+    δh=   : ℤ → δh  --}
+
+  
+
+  data Inst : {mh : ℕ} → (Diff mh) → Set where
+    LOADI   : ℕ → Inst +one
+    LOAD    : String → Inst +one
+    ADD     : Inst -one'ad
+    STORE   : String → Inst -one'st
+    JMP     : ℕ → Inst none'nj
+    JMPLESS : ℕ → Inst none'cj
+    JMPGE   : ℕ → Inst none'cj
+    
+  iexe : ∀ {mh x y}{hd : Diff mh}{p1 : mh ≤ x} → Inst hd → Config x → Config y
+  iexe (LOADI n)    (config state stack pc)                  = config state (n , stack) (suc pc)
+  iexe (LOAD name)  (config state stack pc)                  = config state ((get-var name state) , stack) (suc pc)
+  iexe ADD          (config state (head , (next , rest)) pc) = config state ((head ℕ+ next) , rest) (suc pc)
+  iexe (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (suc pc)
+  iexe (JMP x)      (config state stack pc)                  = config state stack (x)
+  iexe (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
+  ...                                                | true  = config state (head , (next , rest)) (suc pc) -- if next ≮ head, continue
+  ...                                                | false = config state (head , (next , rest)) (x)      -- if next < head, jump
+  iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
+  ...                                                | true  = config state (head , (next , rest)) (x)      -- if next ≤ head, jump
+  ...                                                | false = config state (head , (next , rest)) (suc pc) -- if next ≰ head, continue
+
+ {--  data Prog : ℕ → ℕ → ℕ → Set where
+    []   : ∀ {x} → Prog x x 0
+    _∷_ : ∀ {x y z p} → Inst x y → Prog y z p → Prog x z (suc p)
+
+
+  exe : ∀ {x y p} → Prog x y p → Config x → Config y
+  exe [] c = c
+--}  
 
 
 {-
