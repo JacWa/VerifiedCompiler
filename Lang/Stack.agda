@@ -1,7 +1,7 @@
 module Lang.Stack where
 
   -- Data.* files are imported from agda-stdlib
-  open import Data.Nat.Base renaming (_+_ to _ℕ+_)
+  open import Data.Nat.Base renaming (_+_ to _ℕ+_) hiding (_≟_)
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Equality
   open import Data.String.Base
@@ -11,6 +11,9 @@ module Lang.Stack where
   open import Proofs.Basic
   open import Misc.Base 
   open import Base.DataStructures
+  open import Relation.Nullary
+  open import Relation.Nullary.Decidable
+  open import Agda.Primitive
 
 --------------------
 -- Stack language --
@@ -26,6 +29,8 @@ module Lang.Stack where
     JMP     : ℕ → Inst none'nj
     JMPLESS : ℕ → Inst none'cj
     JMPGE   : ℕ → Inst none'cj
+
+  
     
   iexe : ∀ {mh x y}{hd : Diff mh}{p1 : mh ≤ x}(p2 : y ≡ (diff x hd {p1})) → Inst hd → Config x → Config y
   iexe refl (LOADI n)    (config state stack pc)                  = config state (n , stack) (suc pc)
@@ -45,14 +50,21 @@ module Lang.Stack where
 
 
 
-  data Prog : ℕ → ℕ → Set where
-    []   : Prog 0 0
-    _∷_ : ∀ {pc omh nmh}{hd : Diff nmh} → (Inst hd) → Prog pc omh → Prog (suc pc) nmh
+  data Prog : ℕ → Set where
+    []   : Prog 0
+    _∷_ : ∀ {omh nmh}{hd : Diff nmh} → (Inst hd) → Prog omh → Prog nmh
+
+  _isEmpty? : ∀ {n} → Prog n → Bool
+  [] isEmpty? = true
+  _ isEmpty? = false
+  
+  & : ∀ {x y z}(first : Prog x ){pr1 : z ≡ (if (first isEmpty?) then y else x)} → Prog y → Prog z
+  & [] {refl} ys = ys
+  & (x ∷ xs) {refl} ys = x ∷ (& xs {refl} ys)
 
 
 {--  exe : ∀ {x y p} → Prog x y p → Config x → Config y
-  exe [] c = c
---}  
+  exe [] c = c   --}
 
 
 {-

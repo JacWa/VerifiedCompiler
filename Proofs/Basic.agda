@@ -5,3 +5,5 @@ module Proofs.Basic where
   -- proof: equality symmetry
   sym : {A : Set} {a b : A} → a ≡ b → b ≡ a
   sym refl = refl
+  
+  

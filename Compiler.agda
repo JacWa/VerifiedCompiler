@@ -15,6 +15,12 @@ module Compiler where
 --------------
 -- Compiler --
 --------------
+
+  acomp : AExp → Prog 0
+  acomp (NAT n) = (LOADI n) ∷ []
+  acomp (VAR v) = (LOAD v) ∷ []
+  acomp (a + b) = (acomp a) & (acomp b) & (ADD ∷ [])
+
 {-
   -- function: compile ETL to SML
   compile : ∀ {n} → Exp → Path n (suc n)
