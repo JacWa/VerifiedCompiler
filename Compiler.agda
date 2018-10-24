@@ -11,6 +11,7 @@ module Compiler where
   open import Base.DataStructures
   open import Lang.Expr
   open import Lang.Stack
+  open import Relation.Nullary
 
 --------------
 -- Compiler --
@@ -19,8 +20,15 @@ module Compiler where
   acomp : AExp → Prog 0
   acomp (NAT n) = (LOADI n) ∷ []
   acomp (VAR v) = (LOAD v) ∷ []
-  acomp (a + b) = (acomp a) & (acomp b) & (ADD ∷ [])
+  acomp (a + b) with (acomp a isEmpty?) ≟ false 
+  ... | yes p  = acomp a & (acomp b & (ADD ∷ []) [ refl ]) [ itep p ]
+  ... | no p = []
 
+
+{--with (acomp a & acomp b [ refl ]) isEmpty?
+  ... | true = []
+  ... | false = ((acomp a) & (acomp b) [ refl ]) & (ADD ∷ []) [ refl ] --}
+  
 {-
   -- function: compile ETL to SML
   compile : ∀ {n} → Exp → Path n (suc n)

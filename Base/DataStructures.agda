@@ -64,6 +64,7 @@ module Base.DataStructures where
     none'cj : Diff 2
     -one'st : Diff 1
     -one'ad : Diff 2
+    nothing : Diff 0
 
   diff : (x : ℕ){mh : ℕ} → Diff mh → {pr1 : mh ≤ x} → ℕ
   diff h       (+one)    = suc h
@@ -73,4 +74,5 @@ module Base.DataStructures where
   diff (suc h) (-one'ad) = h
   diff 0       (-one'st) {}
   diff 0       (-one'ad) {}
+  diff h       (nothing) = h
   

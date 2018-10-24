@@ -64,17 +64,15 @@ module Lang.Stack where
   _ isEmpty? = false
   
   _&_[_] : ∀ {xpc ypc xip yip zip}(x : Prog xpc xip) → Prog ypc yip → (pr1 : zip ≡ (if (x isEmpty?) then yip else xip)) → Prog (xpc ℕ+ ypc) zip
-  []        & ys [ refl ] = ys
-  (x ∷ []) & ys [ refl ] = x ∷ ys
-{--  (x ∷ xs) & ys [ p ] with p
-  ... | refl = x ∷ (xs & ys [ {!!} ]) --}
+  [] & ys [ refl ] = ys
+  (x ∷ xs) & ys [ refl ] = x ∷ (xs & ys [ refl ])
 
 {-  pc? : ∀ {mh pc} → Prog mh pc → ℕ
   pc? [] = 0
   pc? (x ∷ xs) = 1 ℕ+ pc? xs -}
 
-{-  getI : ∀ {mh x}(pc : ℕ)(p : Prog mh pc) → Inst x
-  getI 0 p = {!!} -}
+  getI : ∀ {mh x}(pc : ℕ)(p : Prog mh pc) → Inst x
+  getI 0 p = {!!}
 
 {--  exe : ∀ {x y p} → Prog p → Config x → Config y
   exe (x ∷ xs) (config state stack pc) with (pc? (x ∷ xs))
