@@ -50,22 +50,20 @@ module Lang.Stack where
   iexe {2} {0} {p1 = ()}
   iexe {1} {0} {p1 = ()}
 
+  infixr 20 _::_
+  data Prog : ℕ → Set where
+    [] : Prog 0
+    _::_ : ∀ {n hd}{mh : Diff hd} → Inst mh → Prog n → Prog (suc n)
 
-  data InstPair : Set where
-    [_,_] : (mh : ℕ){hd : Diff mh} → Inst hd → InstPair
+  infixr 19 _&_
+  _&_ : ∀ {n1 n2} → Prog n1 → Prog n2 → Prog (n1 ℕ+ n2)
+  []        & ys = ys
+  (x :: xs) & ys = x :: (xs & ys)
 
-
-  data Prog : ℕ → InstPair → Set where
-    []   : Prog 0 [ 0 , NOTHING ]
-    _∷_ : ∀ {omh nmh opc}{ohd : Diff omh}{oinst : Inst ohd}{nhd : Diff nmh}(ninst : Inst nhd) → Prog opc [ omh , oinst ] → Prog (suc opc) [ nmh , ninst ]
-
-  _isEmpty? : ∀ {pc ip} → Prog pc ip → Bool
-  [] isEmpty? = true
-  _ isEmpty? = false
+  -- data ⦅_,_⦆↦_ {x y : ℕ} : Prog → Config x → Config y → Set where
   
-  _&_[_] : ∀ {xpc ypc xip yip zip}(x : Prog xpc xip) → Prog ypc yip → (pr1 : zip ≡ (if (x isEmpty?) then yip else xip)) → Prog (xpc ℕ+ ypc) zip
-  []        & ys [ refl ] = ys
-  (x ∷ []) & ys [ refl ] = x ∷ ys
+
+
 {--  (x ∷ xs) & ys [ p ] with p
   ... | refl = x ∷ (xs & ys [ {!!} ]) --}
 
