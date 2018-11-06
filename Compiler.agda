@@ -17,17 +17,31 @@ module Compiler where
 -- Compiler --
 --------------
 
-  acomp : AExp → Prog 0
-  acomp (NAT n) = (LOADI n) ∷ []
-  acomp (VAR v) = (LOAD v) ∷ []
-  acomp (a + b) with (acomp a isEmpty?) ≟ false 
-  ... | yes p  = acomp a & (acomp b & (ADD ∷ []) [ refl ]) [ itep p ]
-  ... | no p = []
+  acomp : AExp → Prog
+  acomp (NAT n) = (LOADI n) :: []
+  acomp (VAR v) = (LOAD v) :: []
+  acomp (a + b) = acomp a & acomp b & ADD :: []
+
+  
+
+  compile : {offset : ℕ} → IExp → Prog
+  compile SKIP = []
+  compile (x ≔ a) = acomp a & (STORE x :: [])
+  compile {n} (this ⋯ that) with (compile {n} that)
+  ... | p = compile {n ℕ+ (len p)} this & p
+  compile {n} (IF bool THEN this ELSE that) with bool
+  ... | BOOL true  = compile {n} this
+  ... | BOOL false = compile {n} that
+  ... | NOT _      = {!!}
+  ... | x AND y    = {!!}
+  ... | x LT y     = acomp x & acomp y & ( JMPLESS {!!} :: compile {len (compile {n} this) ℕ+ n} that) & compile {n} this
+  compile (WHILE b DO this) = {!!}
+  
 
 
 {--with (acomp a & acomp b [ refl ]) isEmpty?
   ... | true = []
-  ... | false = ((acomp a) & (acomp b) [ refl ]) & (ADD ∷ []) [ refl ] --}
+  ... | false = ((acomp a) & (acomp b) [ refl ]) & (ADD :: []) [ refl ] --}
   
 {-
   -- function: compile ETL to SML

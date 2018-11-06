@@ -59,7 +59,7 @@ module Proofs.NatProofs where
     -- This is built-in to the definition of _^_, but can be useful with rewrite to make the goal appear in a different form.
     ^0 : (n : ℕ) → n ^ 0 ≡ 1
     ^0 n = refl
-
+    
     ^* : (n x y : ℕ) → n ^ x * n ^ y ≡ n ^ (x + y)
     ^* n 0 y rewrite +0 (n ^ y) = refl
     ^* n (suc x) y rewrite *assoc n (n ^ x) (n ^ y) | ^* n x y = refl

@@ -29,7 +29,7 @@ module Lang.Stack where
     JMP     : ℕ → Inst none'nj
     JMPLESS : ℕ → Inst none'cj
     JMPGE   : ℕ → Inst none'cj
-    NOTHING : Inst nothing
+ --   NOTHING : Inst nothing
 
   
     
@@ -40,28 +40,34 @@ module Lang.Stack where
   iexe refl (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (suc pc)
   iexe refl (JMP x)      (config state stack pc)                  = config state stack (x)
   iexe refl (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ...                                                | true  = config state (head , (next , rest)) (suc pc) -- if next ≮ head, continue
-  ...                                                | false = config state (head , (next , rest)) (x)      -- if next < head, jump
+  ... | true                                                      = config state (head , (next , rest)) (suc pc) -- if next ≮ head, continue
+  ... | false                                                     = config state (head , (next , rest)) (x)      -- if next < head, jump
   iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ...                                                | true  = config state (head , (next , rest)) (x)      -- if next ≥ head, jump
-  ...                                                | false = config state (head , (next , rest)) (suc pc) -- if next ≱ head, continue
-  iexe refl NOTHING      (config state stack pc)                   = config state stack (suc pc)
+  ... | true                                                      = config state (head , (next , rest)) (x)      -- if next ≥ head, jump
+  ... | false                                                     = config state (head , (next , rest)) (suc pc) -- if next ≱ head, continue
+  -- iexe refl NOTHING      (config state stack pc)               = config state stack (suc pc)
   iexe {2} {1} {p1 = (s≤s ())}
   iexe {2} {0} {p1 = ()}
   iexe {1} {0} {p1 = ()}
 
   infixr 20 _::_
-  data Prog : ℕ → Set where
-    [] : Prog 0
-    _::_ : ∀ {n hd}{mh : Diff hd} → Inst mh → Prog n → Prog (suc n)
+  data Prog : Set where
+    [] : Prog
+    _::_ : ∀ {hd}{mh : Diff hd} → Inst mh → Prog → Prog
 
   infixr 19 _&_
-  _&_ : ∀ {n1 n2} → Prog n1 → Prog n2 → Prog (n1 ℕ+ n2)
+  _&_ : Prog → Prog → Prog
   []        & ys = ys
   (x :: xs) & ys = x :: (xs & ys)
 
-  -- data ⦅_,_⦆↦_ {x y : ℕ} : Prog → Config x → Config y → Set where
-  
+  len : Prog → ℕ
+  len [] = 0
+  len (x :: xs) = suc (len xs)
+
+
+  data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where
+    empty : ∀ {s} → ⦅ [] , s ⦆↦ s
+    
 
 
 {--  (x ∷ xs) & ys [ p ] with p
