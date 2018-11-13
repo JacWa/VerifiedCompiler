@@ -29,7 +29,7 @@ module Lang.Stack where
     JMP     : ℕ → Inst none'nj
     JMPLESS : ℕ → Inst none'cj
     JMPGE   : ℕ → Inst none'cj
- --   NOTHING : Inst nothing
+    NOTHING : Inst nothing
 
   
     
@@ -45,7 +45,7 @@ module Lang.Stack where
   iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
   ... | true                                                      = config state (head , (next , rest)) (x)      -- if next ≥ head, jump
   ... | false                                                     = config state (head , (next , rest)) (suc pc) -- if next ≱ head, continue
-  -- iexe refl NOTHING      (config state stack pc)               = config state stack (suc pc)
+  iexe refl NOTHING      (config state stack pc)               = config state stack (suc pc)
   iexe {2} {1} {p1 = (s≤s ())}
   iexe {2} {0} {p1 = ()}
   iexe {1} {0} {p1 = ()}
@@ -63,6 +63,11 @@ module Lang.Stack where
   len : Prog → ℕ
   len [] = 0
   len (x :: xs) = suc (len xs)
+
+  _!_ : Prog → (pc : ℕ) → Prog
+  p         ! 0       = p
+  (p :: ps) ! (suc n) = ps ! n
+  []        ! (suc n) = NOTHING :: []
 
 
   data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where

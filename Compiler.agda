@@ -22,20 +22,38 @@ module Compiler where
   acomp (VAR v) = (LOAD v) :: []
   acomp (a + b) = acomp a & acomp b & ADD :: []
 
-  
+  bcomp : BExp → (flag : Bool) → (offset : ℕ) → Prog
+  bcomp (BOOL bool) flag offset with flag ≟ bool
+  ... | yes p = (JMP offset) :: []
+  ... | no _  = []
+  bcomp (NOT bool)  flag offset = bcomp bool (not flag) offset
+  bcomp (a AND b)   flag offset = {!!}
+  bcomp (x LT y)    flag offset with flag
+  ... | true  = acomp x & acomp y & (JMPLESS offset :: [])
+  ... | false = acomp x & acomp y & (JMPGE offset :: [])
 
-  compile : {offset : ℕ} → IExp → Prog
+
+------ Don't need absolute jump addresses. Can use offset from current position.
+
+{-
+  ... | .bool = (JMP offset) :: []
+  ... | _     = [] -}
+
+  compile : IExp → Prog
   compile SKIP = []
   compile (x ≔ a) = acomp a & (STORE x :: [])
-  compile {n} (this ⋯ that) with (compile {n} that)
-  ... | p = compile {n ℕ+ (len p)} this & p
-  compile {n} (IF bool THEN this ELSE that) with bool
+  compile (this ⋯ that) = compile this & compile that
+  compile (IF bool THEN this ELSE that) with compile this
+  ... | THIS = (bcomp bool false (suc (len THIS))) & THIS & compile that
+  compile (WHILE b DO this) with compile this
+  ... | body = (bcomp b false {!!}) & body & (JMP {!!} :: []) 
+  
+{-- with bool
   ... | BOOL true  = compile {n} this
   ... | BOOL false = compile {n} that
   ... | NOT _      = {!!}
   ... | x AND y    = {!!}
-  ... | x LT y     = acomp x & acomp y & ( JMPLESS {!!} :: compile {len (compile {n} this) ℕ+ n} that) & compile {n} this
-  compile (WHILE b DO this) = {!!}
+  ... | x LT y     = acomp x & acomp y & ( JMPLESS {!!} :: compile {len (compile {n} this) ℕ+ n} that) & compile {n} this --}
   
 
 
