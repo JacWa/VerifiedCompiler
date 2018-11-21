@@ -38,12 +38,12 @@ module Lang.Stack where
   iexe refl (LOAD name)  (config state stack pc)                  = config state ((get-var name state) , stack) (zuc pc)
   iexe refl ADD          (config state (head , (next , rest)) pc) = config state ((head ℕ+ next) , rest) (zuc pc)
   iexe refl (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (zuc pc)
-  iexe refl (JMP x)      (config state stack pc)                  = config state stack (x)
+  iexe refl (JMP x)      (config state stack pc)                  = config state stack (zuc pc z+ x)
   iexe refl (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
   ... | true                                                      = config state (head , (next , rest)) (zuc pc) -- if next ≮ head, continue
-  ... | false                                                     = config state (head , (next , rest)) (x)      -- if next < head, jump
+  ... | false                                                     = config state (head , (next , rest)) (zuc pc z+ x)      -- if next < head, jump
   iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ... | true                                                      = config state (head , (next , rest)) (x)      -- if next ≥ head, jump
+  ... | true                                                      = config state (head , (next , rest)) (zuc pc z+ x)      -- if next ≥ head, jump
   ... | false                                                     = config state (head , (next , rest)) (zuc pc) -- if next ≱ head, continue
   iexe refl NOTHING      (config state stack pc)               = config state stack (zuc pc)
   iexe {2} {1} {p1 = (s≤s ())}
