@@ -7,6 +7,7 @@ module Base.DataStructures where
   open import Data.Nat.Base
   open import Data.String.Base
   open import Data.Bool
+  open import Misc.Base
 
 -------------------------
 -- Variable Definition --
@@ -45,15 +46,15 @@ module Base.DataStructures where
 -----------------------
 
   data Config : ℕ → Set where
-    config : ∀ {h}(state : State)(stack : Stack h)(pc : ℕ) → Config h
+    config : ∀ {h}(state : State)(stack : Stack h)(pc : ℤ) → Config h
 
   getState : ∀ {h} → Config h → State
   getState (config state _ _) = state
 
-  getPC : ∀ {h} → Config h → ℕ
+  getPC : ∀ {h} → Config h → ℤ
   getPC (config _ _ pc) = pc
 
-  gssc : {h : ℕ}{pc : ℕ}{stack : Stack h}{state : State} → state ≡ getState (config state stack pc)
+  gssc : {h : ℕ}{pc : ℤ}{stack : Stack h}{state : State} → state ≡ getState (config state stack pc)
   gssc = refl
 
 ---

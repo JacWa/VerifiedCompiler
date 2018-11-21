@@ -2,6 +2,7 @@ module Compiler where
 
   -- Data.* files are imported from agda-stdlib
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
+  open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Equality
   open import Data.String.Base
   open import Data.Bool
@@ -22,7 +23,7 @@ module Compiler where
   acomp (VAR v) = (LOAD v) :: []
   acomp (a + b) = acomp a & acomp b & ADD :: []
 
-  bcomp : BExp → (flag : Bool) → (offset : ℕ) → Prog
+  bcomp : BExp → (flag : Bool) → (offset : ℤ) → Prog
   bcomp (BOOL bool) flag offset with flag ≟ bool
   ... | yes p = (JMP offset) :: []
   ... | no _  = []
@@ -44,7 +45,7 @@ module Compiler where
   compile (x ≔ a) = acomp a & (STORE x :: [])
   compile (this ⋯ that) = compile this & compile that
   compile (IF bool THEN this ELSE that) with compile this
-  ... | THIS = (bcomp bool false (suc (len THIS))) & THIS & compile that
+  ... | THIS = (bcomp bool false (pos (suc (len THIS)))) & THIS & compile that
   compile (WHILE b DO this) with compile this
   ... | body = (bcomp b false {!!}) & body & (JMP {!!} :: []) 
   
