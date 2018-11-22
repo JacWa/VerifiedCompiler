@@ -60,15 +60,19 @@ module Lang.Stack where
   []        & ys = ys
   (x :: xs) & ys = x :: (xs & ys)
 
-  len : Prog → ℕ
-  len [] = 0
-  len (x :: xs) = suc (len xs)
+  size : Prog → ℤ
+  size [] = pos 0
+  size (x :: xs) = zuc (size xs)
 
-  _!_ : Prog → (pc : ℕ) → Prog
-  p         ! 0       = p
-  (p :: ps) ! (suc n) = ps ! n
-  []        ! (suc n) = NOTHING :: []
+  _!n_ : Prog → (pc : ℕ) → Prog
+  p         !n 0       = p
+  (p :: ps) !n (suc n) = ps !n n
+  []        !n (suc n) = NOTHING :: []
 
+
+  _!_ : Prog → (pc : ℤ) → Prog
+  p ! (negsuc _ ) = NOTHING :: []
+  p ! (pos x)     = p !n x
 
   data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where
     empty : ∀ {s} → ⦅ [] , s ⦆↦ s

@@ -27,6 +27,7 @@ module Misc.Base where
   0       n- (suc y) = negsuc y
   (suc x) n- (suc y) = x n- y 
 
+  infixl 20 _z+_
   _z+_ : ℤ → ℤ → ℤ
   (pos x)    z+ (pos y)    = pos (x + y)
   (pos x)    z+ (negsuc y) = x n- (suc y) 
@@ -43,5 +44,14 @@ module Misc.Base where
   zuc (negsuc 0)       = pos 0
   zuc (negsuc (suc x)) = negsuc x
   zuc (pos x)          = pos (suc x)
-  
-  
+
+  neg : ℤ → ℤ
+  neg (pos 0)       = pos 0
+  neg (pos (suc x)) = negsuc x
+  neg (negsuc x)    = pos (suc x)
+
+  iz_≤_ : ℤ → ℤ → Bool
+  iz (negsuc _) ≤ (pos _)    = true
+  iz (pos _)    ≤ (negsuc _) = false 
+  iz (pos x)    ≤ (pos y)    = is x ≤ y
+  iz (negsuc x) ≤ (negsuc y) = is y ≤ x

@@ -29,8 +29,8 @@ module Compiler where
   ... | no _  = []
   bcomp (NOT bool)  flag offset = bcomp bool (not flag) offset
   bcomp (a AND b)   flag offset with bcomp b flag offset | flag
-  ... | B | true = (bcomp a false (pos (len B))) & B
-  ... | B | false = (bcomp a false (pos (len B) z+ offset)) & B
+  ... | B | true = (bcomp a false (size B)) & B
+  ... | B | false = (bcomp a false (size B z+ offset)) & B
   bcomp (x LT y)    flag offset with flag
   ... | true  = acomp x & acomp y & (JMPLESS offset :: [])
   ... | false = acomp x & acomp y & (JMPGE offset :: [])
@@ -43,7 +43,7 @@ module Compiler where
   compile (x ≔ a) = acomp a & (STORE x :: [])
   compile (this ⋯ that) = compile this & compile that
   compile (IF bool THEN this ELSE that) with compile this | compile that
-  ... | THIS | THAT = (bcomp bool false (pos (suc (len THIS)))) & THIS & (JMP (pos (len THAT)) :: [])  & THAT
+  ... | THIS | THAT = (bcomp bool false (zuc (size THIS))) & THIS & (JMP (size THAT) :: [])  & THAT
   compile (WHILE b DO this) with compile this
-  ... | body with bcomp b false ((pos ((len body) ℕ+ 1)))
-  ... | control = control & body & (JMP (negsuc ((len control) ℕ+ (len body))) :: [])
+  ... | body with bcomp b false (size body z+ pos 1)
+  ... | control = control & body & (JMP (neg (size control z+ size body z+ pos 1) ) :: [])
