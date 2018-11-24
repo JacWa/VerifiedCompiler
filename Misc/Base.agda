@@ -3,11 +3,9 @@ module Misc.Base where
   open import Agda.Builtin.Nat renaming (Nat to ℕ)
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Bool
-
-  private
-    data _≤_ : ℕ → ℕ → Set where
-      z≤x  : ∀ {n} → 0 ≤ n
-      ≤suc : ∀ {n m} → n ≤ m → (suc n) ≤ (suc m)
+  open import Relation.Binary
+  open import Data.Nat.Base using (_≤_)
+  import Level using (zero)
 
   is_≤_ : ℕ → ℕ → Bool
   is 0 ≤ x             = true
@@ -55,3 +53,13 @@ module Misc.Base where
   iz (pos _)    ≤ (negsuc _) = false 
   iz (pos x)    ≤ (pos y)    = is x ≤ y
   iz (negsuc x) ≤ (negsuc y) = is y ≤ x
+
+  data _≤_`ℤ` : Rel ℤ Level.zero where
+    -≤+ : ∀ {x y} →                  (negsuc x) ≤ (pos y)    `ℤ`
+    +≤+ : ∀ {x y} → (p : x ≤ y) → (pos x)    ≤ (pos y)    `ℤ`
+    -≤- : ∀ {x y} → (p : y ≤ x) → (negsuc x) ≤ (negsuc y) `ℤ`
+
+  _<_`ℤ` : Rel ℤ Level.zero
+  (negsuc 0)       < y `ℤ` = (pos 0)       ≤ y `ℤ`
+  (negsuc (suc x)) < y `ℤ` = (negsuc x)    ≤ y `ℤ`
+  (pos x)          < y `ℤ` = (pos (suc x)) ≤ y `ℤ`

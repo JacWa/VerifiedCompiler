@@ -71,21 +71,26 @@ module Lang.Stack where
   []        & ys = ys
   (x :: xs) & ys = x :: (xs & ys)
 
+  size` : Prog → ℕ
+  size` [] = 0
+  size` (x :: xs) = suc (size` xs)
+
   size : Prog → ℤ
-  size [] = pos 0
-  size (x :: xs) = zuc (size xs)
-
-{--
-  _!n_ : Prog → (pc : ℕ) → Prog
-  p         !n 0       = p
-  (p :: ps) !n (suc n) = ps !n n
-  []        !n (suc n) = NOTHING :: []
+  size p = pos (size` p)
 
 
-  _!_ : Prog → (pc : ℤ) → Prog
-  p ! (negsuc _ ) = NOTHING :: []
-  p ! (pos x)     = p !n x
---}
+  data Lem2 : ℤ → Prog → Set where
+    validPC : {pc : ℕ}{prog : Prog}{GZproof : (pos 0) ≤ (pos pc) `ℤ`}{LEproof : (pos pc)  < (size prog) `ℤ`} → Lem2 (pos pc) prog
+
+  inst : (prog : Prog) → (pc : ℤ) → {proof : Lem2 pc prog} → Inst
+  inst (i :: is) (pos 0)       = i
+  inst (i :: is) (pos (suc n)) {validPC {LEproof = +≤+ (s≤s p)}}= inst is (pos n) {validPC {GZproof = +≤+ z≤n} {+≤+ {suc n} {size` is} p}}
+  inst []        (pos n)       {validPC {_} {_} {_} {+≤+ ()}}
+  -- inst (i :: []) (pos (suc n)) {validPC {_} {_} {_} {+≤+ (s≤s ())}}
+  inst (i :: is) (negsuc n)    {}
+  
+
+
   data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where
     empty : ∀ {s} → ⦅ [] , s ⦆↦ s
     
