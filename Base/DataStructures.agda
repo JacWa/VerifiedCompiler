@@ -37,43 +37,31 @@ module Base.DataStructures where
 ----------------------
 
   infixr 20 _,_
-  data Stack : ℕ → Set where
-    $   : Stack 0
-    _,_ : ∀ {n} → ℕ → Stack n → Stack (suc n)
+  data Stack : Set where
+    $   : Stack
+    _,_ : ℕ → Stack → Stack
+
+  height : Stack → ℕ
+  height $       = 0
+  height (h , t) = suc (height t)
 
 -----------------------
 -- Config Definition --
 -----------------------
 
-  data Config : ℕ → Set where
-    config : ∀ {h}(state : State)(stack : Stack h)(pc : ℤ) → Config h
+  data Config : Set where
+    config : (state : State)(stack : Stack)(pc : ℤ) → Config
 
-  getState : ∀ {h} → Config h → State
-  getState (config state _ _) = state
+  state : Config → State
+  state (config state _ _) = state
 
-  getPC : ∀ {h} → Config h → ℤ
-  getPC (config _ _ pc) = pc
+  pC : Config → ℤ
+  pC (config _ _ pc) = pc
 
-  gssc : {h : ℕ}{pc : ℤ}{stack : Stack h}{state : State} → state ≡ getState (config state stack pc)
-  gssc = refl
+  stack : Config → Stack
+  stack (config _ stack _) = stack
+
 
 ---
 
-  data Diff : ℕ → Set where
-    +one    : Diff 0
-    none'nj : Diff 0
-    none'cj : Diff 2
-    -one'st : Diff 1
-    -one'ad : Diff 2
-    nothing : Diff 0
 
-  diff : (x : ℕ){mh : ℕ} → Diff mh → {pr1 : mh ≤ x} → ℕ
-  diff h       (+one)    = suc h
-  diff h       (none'nj) = h
-  diff h       (none'cj) = h
-  diff (suc h) (-one'st) = h
-  diff (suc h) (-one'ad) = h
-  diff 0       (-one'st) {}
-  diff 0       (-one'ad) {}
-  diff h       (nothing) = h
-  

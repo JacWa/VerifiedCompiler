@@ -21,39 +21,50 @@ module Lang.Stack where
 
   -- Have to use stack height difference instead of set stack heights, as jumps make it possible for an instruction to apply to the stack at different heights.
 
-  data Inst : {mh : ℕ} → (Diff mh) → Set where
-    LOADI   : ℕ → Inst +one
-    LOAD    : String → Inst +one
-    ADD     : Inst -one'ad
-    STORE   : String → Inst -one'st
-    JMP     : ℤ → Inst none'nj
-    JMPLESS : ℤ → Inst none'cj
-    JMPGE   : ℤ → Inst none'cj
-    NOTHING : Inst nothing
+  data Inst : Set where
+    LOADI   : ℕ → Inst
+    LOAD    : String → Inst
+    ADD     : Inst
+    STORE   : String → Inst
+    JMP     : ℤ → Inst
+    JMPLESS : ℤ → Inst
+    JMPGE   : ℤ → Inst
 
+  data Lem1 : Inst → ℕ → Set where
+    loadi : ∀ {n h} → Lem1 (LOADI n)   h
+    load  : ∀ {v h} → Lem1 (LOAD v)    h
+    add   : ∀ {h}   → Lem1 ADD         (suc (suc h))
+    store : ∀ {v h} → Lem1 (STORE v)   (suc h)
+    jmp   : ∀ {z h} → Lem1 (JMP z)     h
+    jmp<  : ∀ {z h} → Lem1 (JMPLESS z) (suc (suc h))
+    jmp≥  : ∀ {z h} → Lem1 (JMPGE z)   (suc (suc h))
+
+  iexe : (i : Inst)(c : Config)(p : Lem1 i (height (stack c))) → Config
+  iexe (LOADI n)    (config state stack pc)                  loadi = config state (n , stack) (zuc pc)
+  iexe (LOAD name)  (config state stack pc)                  load  = config state ((get-var name state) , stack) (zuc pc)
+  iexe ADD          (config state (head , (next , rest)) pc) add   = config state ((head ℕ+ next) , rest) (zuc pc)
+  iexe (STORE name) (config state (head , rest) pc)          store = config (set-var name head state) rest (zuc pc)
+  iexe (JMP x)      (config state stack pc)                  jmp   = config state stack (zuc pc z+ x)
+  iexe (JMPLESS x)  (config state (head , (next , rest)) pc) jmp< with (is head ≤ next)
+  ... | true                                                       = config state (head , (next , rest)) (zuc pc) -- if next ≮ head, continue
+  ... | false                                                      = config state (head , (next , rest)) (zuc pc z+ x)      -- if next < head, jump
+  iexe (JMPGE x)    (config state (head , (next , rest)) pc) jmp≥ with (is head ≤ next)
+  ... | true                                                       = config state (head , (next , rest)) (zuc pc z+ x)      -- if next ≥ head, jump
+  ... | false                                                      = config state (head , (next , rest)) (zuc pc) -- if next ≱ head, continue
   
-    
-  iexe : ∀ {mh x y}{hd : Diff mh}{p1 : mh ≤ x}(p2 : y ≡ (diff x hd {p1})) → Inst hd → Config x → Config y 
-  iexe refl (LOADI n)    (config state stack pc)                  = config state (n , stack) (zuc pc)
-  iexe refl (LOAD name)  (config state stack pc)                  = config state ((get-var name state) , stack) (zuc pc)
-  iexe refl ADD          (config state (head , (next , rest)) pc) = config state ((head ℕ+ next) , rest) (zuc pc)
-  iexe refl (STORE name) (config state (head , rest) pc)          = config (set-var name head state) rest (zuc pc)
-  iexe refl (JMP x)      (config state stack pc)                  = config state stack (zuc pc z+ x)
-  iexe refl (JMPLESS x)  (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ... | true                                                      = config state (head , (next , rest)) (zuc pc) -- if next ≮ head, continue
-  ... | false                                                     = config state (head , (next , rest)) (zuc pc z+ x)      -- if next < head, jump
-  iexe refl (JMPGE x)    (config state (head , (next , rest)) pc) with (is head ≤ next)
-  ... | true                                                      = config state (head , (next , rest)) (zuc pc z+ x)      -- if next ≥ head, jump
-  ... | false                                                     = config state (head , (next , rest)) (zuc pc) -- if next ≱ head, continue
-  iexe refl NOTHING      (config state stack pc)               = config state stack (zuc pc)
-  iexe {2} {1} {p1 = (s≤s ())}
-  iexe {2} {0} {p1 = ()}
-  iexe {1} {0} {p1 = ()}
-
+  iexe ADD         (config _ (_ , $) _) ()
+  iexe (JMPLESS _) (config _ (_ , $) _) ()
+  iexe (JMPGE _)   (config _ (_ , $) _) ()
+  iexe ADD         (config _ $ _) ()
+  iexe (STORE _)   (config _ $ _) ()
+  iexe (JMPLESS _) (config _ $ _) ()
+  iexe (JMPGE _)   (config _ $ _) ()
+  
+  
   infixr 20 _::_
   data Prog : Set where
-    [] : Prog
-    _::_ : ∀ {hd}{mh : Diff hd} → Inst mh → Prog → Prog
+    []   : Prog
+    _::_ : Inst → Prog → Prog
 
   infixr 19 _&_
   _&_ : Prog → Prog → Prog
@@ -64,6 +75,7 @@ module Lang.Stack where
   size [] = pos 0
   size (x :: xs) = zuc (size xs)
 
+{--
   _!n_ : Prog → (pc : ℕ) → Prog
   p         !n 0       = p
   (p :: ps) !n (suc n) = ps !n n
@@ -73,7 +85,7 @@ module Lang.Stack where
   _!_ : Prog → (pc : ℤ) → Prog
   p ! (negsuc _ ) = NOTHING :: []
   p ! (pos x)     = p !n x
-
+--}
   data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where
     empty : ∀ {s} → ⦅ [] , s ⦆↦ s
     
