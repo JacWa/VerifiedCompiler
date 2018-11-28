@@ -58,8 +58,14 @@ module Misc.Base where
     -≤+ : ∀ {x y} →                  (negsuc x) ≤ (pos y)    `ℤ`
     +≤+ : ∀ {x y} → (p : x ≤ y) → (pos x)    ≤ (pos y)    `ℤ`
     -≤- : ∀ {x y} → (p : y ≤ x) → (negsuc x) ≤ (negsuc y) `ℤ`
-
+    
   _<_`ℤ` : Rel ℤ Level.zero
   (negsuc 0)       < y `ℤ` = (pos 0)       ≤ y `ℤ`
   (negsuc (suc x)) < y `ℤ` = (negsuc x)    ≤ y `ℤ`
   (pos x)          < y `ℤ` = (pos (suc x)) ≤ y `ℤ`
+
+  data _ℤ≡_ : Rel ℤ Level.zero where
+    ℤzero : (pos 0) ℤ≡ (pos 0)
+    ℤpos  : ∀ {x y} → (pos x) ℤ≡ (pos y) → (pos (suc x)) ℤ≡ (pos (suc y))
+    ℤnero : (negsuc 0) ℤ≡ (negsuc 0)
+    ℤneg  : ∀ {x y} → (negsuc x) ℤ≡ (negsuc y)

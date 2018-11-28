@@ -52,11 +52,11 @@ module Base.DataStructures where
   data Config : Set where
     config : (state : State)(stack : Stack)(pc : ℤ) → Config
 
-  state : Config → State
-  state (config state _ _) = state
+  STATE : Config → State
+  STATE (config state _ _) = state
 
-  pC : Config → ℤ
-  pC (config _ _ pc) = pc
+  pc : Config → ℤ
+  pc (config _ _ pc) = pc
 
   stack : Config → Stack
   stack (config _ stack _) = stack

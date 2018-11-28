@@ -31,20 +31,20 @@ module Lang.Stack where
     JMPGE   : ℤ → Inst
 
   data Lem1 : Inst → ℕ → Set where
-    loadi : ∀ {n h} → Lem1 (LOADI n)   h
-    load  : ∀ {v h} → Lem1 (LOAD v)    h
+    loadi : ∀ {h n} → Lem1 (LOADI n)   h
+    load  : ∀ {h v} → Lem1 (LOAD v)    h
     add   : ∀ {h}   → Lem1 ADD         (suc (suc h))
-    store : ∀ {v h} → Lem1 (STORE v)   (suc h)
-    jmp   : ∀ {z h} → Lem1 (JMP z)     h
-    jmp<  : ∀ {z h} → Lem1 (JMPLESS z) (suc (suc h))
-    jmp≥  : ∀ {z h} → Lem1 (JMPGE z)   (suc (suc h))
+    store : ∀ {h v} → Lem1 (STORE v)   (suc h)
+    jmp   : ∀ {h z} → Lem1 (JMP z)     h
+    jmp<  : ∀ {h z} → Lem1 (JMPLESS z) (suc (suc h))
+    jmp≥  : ∀ {h z} → Lem1 (JMPGE z)   (suc (suc h))
 
   iexe : (i : Inst)(c : Config)(p : Lem1 i (height (stack c))) → Config
-  iexe (LOADI n)    (config state stack pc)                  loadi = config state (n , stack) (zuc pc)
-  iexe (LOAD name)  (config state stack pc)                  load  = config state ((get-var name state) , stack) (zuc pc)
+  iexe (LOADI n)    (config state stack                  pc) loadi = config state (n , stack) (zuc pc)
+  iexe (LOAD name)  (config state stack                  pc) load  = config state ((get-var name state) , stack) (zuc pc)
   iexe ADD          (config state (head , (next , rest)) pc) add   = config state ((head ℕ+ next) , rest) (zuc pc)
-  iexe (STORE name) (config state (head , rest) pc)          store = config (set-var name head state) rest (zuc pc)
-  iexe (JMP x)      (config state stack pc)                  jmp   = config state stack (zuc pc z+ x)
+  iexe (STORE name) (config state (head , rest)          pc) store = config (set-var name head state) rest (zuc pc)
+  iexe (JMP x)      (config state stack                  pc) jmp   = config state stack (zuc pc z+ x)
   iexe (JMPLESS x)  (config state (head , (next , rest)) pc) jmp< with (is head ≤ next)
   ... | true                                                       = config state (head , (next , rest)) (zuc pc) -- if next ≮ head, continue
   ... | false                                                      = config state (head , (next , rest)) (zuc pc z+ x)      -- if next < head, jump
@@ -78,22 +78,72 @@ module Lang.Stack where
   size : Prog → ℤ
   size p = pos (size` p)
 
+-----------------
+-- SIZE PROOFS --
+-----------------
 
+  {-- size`+ : {p : Prog} → 0 ≤ size` p
+  size`+ = z≤n
+
+  size+ : ∀ {p n}{eq : n ≡ (size` p)} → size p ℤ≡ (pos n)
+  size+ {[]} {0} {refl} = ℤzero
+  size+ {x :: xs} {suc n} {refl} = ℤpos (size+ {xs} {n} {refl}) --}
+
+  ℕ≤= : ∀ {x} → x ≤ x
+  ℕ≤= {0} = z≤n
+  ℕ≤= {suc n} = s≤s ℕ≤=
+
+  ℕ≤↓ : ∀ {x y}{s : suc x ≤ suc y} → x ≤ y
+  ℕ≤↓ {s = s≤s p} = p
+
+  ℕ≤s : ∀ {x y}{base : x ≤ y} → x ≤ (suc y)
+  ℕ≤s {0} = z≤n
+  ℕ≤s {suc x} {suc y} {base} = s≤s (ℕ≤s {x} {y} {ℕ≤↓ {s = base}})
+  ℕ≤s {suc x} {0} {}
+
+  +sucmv : ∀ {x y} → y ℕ+ suc x ≡ suc y ℕ+ x
+  +sucmv {x} {0} = refl
+  +sucmv {x} {suc y} rewrite +sucmv {x} {y} = refl
+  
+  ℕ≤+ : ∀ {x y} → x ≤ y ℕ+ x
+  ℕ≤+ {0} {suc y} = z≤n
+  ℕ≤+ {x} {0} = ℕ≤=
+  ℕ≤+ {suc x} {suc y} rewrite +sucmv {x} {y} = s≤s (ℕ≤s {base = ℕ≤+})
+
+  &[] : ∀ {p} → p & [] ≡ p
+  &[] {[]} = refl
+  &[] {x :: xs} rewrite &[] {xs} = refl
+
+  suc≡ : ∀ {x y}{base : x ≡ y} → suc x ≡ suc y
+  suc≡ {base = refl} = refl
+
+  size`::+ : ∀ {p ps} → suc (size` ps) ≡ size` (p :: ps)
+  size`::+ = refl
+
+  size`&+ : ∀ {p q} → size` (p & q) ≡ (size` p ℕ+ size` q)
+  size`&+ {[]} = refl
+  size`&+ {x :: xs} {q} rewrite size`::+ {x} {xs} | suc≡ {size` (xs & q)} {size` xs ℕ+ size` q} {size`&+ {xs} {q}} = refl
+
+  size& : ∀ {p q} → (size q) ≤ (size (p & q)) `ℤ`
+  size& {[]} {q} rewrite &[] {q} = +≤+ ℕ≤=
+  size& {x :: xs} {q} rewrite size`&+ {x :: xs} {q} = +≤+ (ℕ≤s {base = ℕ≤+})
+
+----------
+  
   data Lem2 : ℤ → Prog → Set where
-    validPC : {pc : ℕ}{prog : Prog}{GZproof : (pos 0) ≤ (pos pc) `ℤ`}{LEproof : (pos pc)  < (size prog) `ℤ`} → Lem2 (pos pc) prog
+    validPC : {pc : ℤ}{prog : Prog}{GZproof : (pos 0) ≤ pc `ℤ`}{LEproof : pc  < (size prog) `ℤ`} → Lem2 pc prog
 
   inst : (prog : Prog) → (pc : ℤ) → {proof : Lem2 pc prog} → Inst
   inst (i :: is) (pos 0)       = i
   inst (i :: is) (pos (suc n)) {validPC {LEproof = +≤+ (s≤s p)}}= inst is (pos n) {validPC {GZproof = +≤+ z≤n} {+≤+ {suc n} {size` is} p}}
-  inst []        (pos n)       {validPC {_} {_} {_} {+≤+ ()}}
-  -- inst (i :: []) (pos (suc n)) {validPC {_} {_} {_} {+≤+ (s≤s ())}}
-  inst (i :: is) (negsuc n)    {}
+  inst []        (pos n)       {validPC {LEproof = +≤+ ()}}
+  inst _ (negsuc _) {validPC {GZproof = ()}}
   
 
+  {-- step : (p : Prog)(c : Config){vpc : Lem2 (pc c) p}{vh : Lem1 (inst p (pc c) {vpc}) (height (stack c))} → Config
+  step p c {vpc} {vh} = iexe (inst p (pc c) {vpc}) c vh --}
 
-  data ⦅_,_⦆↦_ {x y : ℕ} : Prog → State → State → Set where
-    empty : ∀ {s} → ⦅ [] , s ⦆↦ s
-    
+   
 
 
 {--  (x ∷ xs) & ys [ p ] with p
