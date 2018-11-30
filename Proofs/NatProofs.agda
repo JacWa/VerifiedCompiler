@@ -27,6 +27,12 @@ module Proofs.NatProofs where
     +assoc 0 y z = refl
     +assoc (suc x) y z rewrite +assoc x y z = refl
 
+    +oswap : (x y z : ℕ) → (x + (y + z)) ≡ (y + (x + z))
+    +oswap x y z rewrite +assoc x y z | +assoc y x z | +comm x y = refl
+
+    +3free4 : (a b c d : ℕ) → (a + (b + (c + d))) ≡ c + (a + (b + d))
+    +3free4 a b c d rewrite +oswap b c d | +oswap a c (b + d) = refl
+
     *0 : (x : ℕ) → (x * 0) ≡ 0
     *0 0 = refl
     *0 (suc x) rewrite *0 x = refl

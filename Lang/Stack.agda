@@ -124,9 +124,19 @@ module Lang.Stack where
   size`&+ {[]} = refl
   size`&+ {x :: xs} {q} rewrite size`::+ {x} {xs} | suc≡ {size` (xs & q)} {size` xs ℕ+ size` q} {size`&+ {xs} {q}} = refl
 
+  size`& : ∀ {p q} → (size` q) ≤ (size` (p & q))
+  size`& {[]} {q} rewrite &[] {q} = ℕ≤=
+  size`& {x :: xs} {q} rewrite size`&+ {x :: xs} {q} = ℕ≤s {base = ℕ≤+}
+
   size& : ∀ {p q} → (size q) ≤ (size (p & q)) `ℤ`
   size& {[]} {q} rewrite &[] {q} = +≤+ ℕ≤=
   size& {x :: xs} {q} rewrite size`&+ {x :: xs} {q} = +≤+ (ℕ≤s {base = ℕ≤+})
+
+  size`&2 : ∀ {a b c d} → size` c ≤ size` (a & b & c & d)
+  size`&2 {a} {b} {c} {d} rewrite size`&+ {a} {b & c & d} | size`&+ {b} {c & d} | size`&+ {c} {d} | +3free4 (size` a) (size` b) (size` c) (size` d) = ≤+ ≤=
+
+  size`&3 : ∀ {a b c} → size` c ≤ size` (a & b & c)
+  size`&3 {a} {b} {c} rewrite size`&+ {a} {b & c} | size`&+ {b} {c} | +comm (size` b) (size` c) | +oswap (size` a) (size` c) (size` b) = ≤+ ≤=
 
 ----------
   

@@ -11,3 +11,7 @@ module Test where
 
   ex1' : Prog
   ex1' = compile ex1
+
+
+  record Truth : Set₁ where
+  

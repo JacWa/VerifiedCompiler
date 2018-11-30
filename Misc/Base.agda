@@ -3,8 +3,10 @@ module Misc.Base where
   open import Agda.Builtin.Nat renaming (Nat to ℕ)
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Bool
+  open import Agda.Builtin.Equality
   open import Relation.Binary
   open import Data.Nat.Base using (_≤_)
+  open import Proofs.NatProofs
   import Level using (zero)
 
   is_≤_ : ℕ → ℕ → Bool
@@ -15,6 +17,18 @@ module Misc.Base where
   infixr 20 _×_ _ω_
   data _ω_ {A B : Set} : Set → Set → Set where
     _×_ : (a : A)(b : B) → A ω B
+
+  ≤trans : ∀ {x y z} → x ≤ y → y ≤ z → x ≤ z
+  ≤trans {0} _ _ = _≤_.z≤n
+  ≤trans {suc a} (_≤_.s≤s p) (_≤_.s≤s q) = _≤_.s≤s (≤trans p q)
+
+  ≤+ : ∀ {x y z} → x ≤ y → x ≤ y + z
+  ≤+ {0} _ = _≤_.z≤n
+  ≤+ {suc n} (_≤_.s≤s p) = _≤_.s≤s (≤+ p)
+
+  ≤= : ∀ {x} → x ≤ x
+  ≤= {0} = _≤_.z≤n
+  ≤= {suc x} = _≤_.s≤s ≤=
 
   ∣_∣ : ℤ → ℕ
   ∣ pos x ∣ = x
@@ -59,6 +73,12 @@ module Misc.Base where
     +≤+ : ∀ {x y} → (p : x ≤ y) → (pos x)    ≤ (pos y)    `ℤ`
     -≤- : ∀ {x y} → (p : y ≤ x) → (negsuc x) ≤ (negsuc y) `ℤ`
     
+  ℤ≤trans : ∀ {x y z} → x ≤ y `ℤ` → y ≤ z `ℤ` → x ≤ z `ℤ`
+  ℤ≤trans -≤+     (+≤+ _) = -≤+
+  ℤ≤trans (-≤- _) -≤+     = -≤+
+  ℤ≤trans (-≤- p) (-≤- q) = -≤- (≤trans q p)
+  ℤ≤trans (+≤+ p) (+≤+ q) = +≤+ (≤trans p q)
+
   _<_`ℤ` : Rel ℤ Level.zero
   (negsuc 0)       < y `ℤ` = (pos 0)       ≤ y `ℤ`
   (negsuc (suc x)) < y `ℤ` = (negsuc x)    ≤ y `ℤ`
@@ -69,3 +89,43 @@ module Misc.Base where
     ℤpos  : ∀ {x y} → (pos x) ℤ≡ (pos y) → (pos (suc x)) ℤ≡ (pos (suc y))
     ℤnero : (negsuc 0) ℤ≡ (negsuc 0)
     ℤneg  : ∀ {x y} → (negsuc x) ℤ≡ (negsuc y)
+
+
+  _∨_ : Bool → Bool → Bool
+  false ∨ b = b
+  true ∨ b = true
+
+  ∨split : ∀ {x y} → x ∨ y ≡ true → y ≡ false → x ≡ true
+  ∨split {true} _ _ = refl
+  ∨split {false} {true} _ ()
+  ∨split {false} {false} ()
+
+  ∨fs1 : ∀ {x y} → x ∨ y ≡ false → x ≡ false
+  ∨fs1 {false} _ = refl
+  ∨fs1 {true} ()
+
+  ∨fs2 : ∀ {y x} → x ∨ y ≡ false → y ≡ false
+  ∨fs2 {false} _ = refl
+  ∨fs2 {true} {true} ()
+  ∨fs2 {true} {false} ()
+  
+  ∨true : ∀ {x} → false ∨ x ≡ true → x ≡ true → false ∨ x ≡ true
+  ∨true p q = q
+
+  ∨false : ∀ {x y} → x ≡ false → y ≡ false → x ∨ y ≡ false
+  ∨false refl refl = refl
+
+  ∨false2 : ∀ {x} → x ≡ false → false ∨ x ≡ false
+  ∨false2 p = p
+
+  ∨switch : (b : Bool) → b ∨ false ≡ b
+  ∨switch false = refl
+  ∨switch true = refl
+
+  data Singleton {a} {A : Set a} (x : A) : Set a where
+    _with≡_ : (y : A) → x ≡ y → Singleton x
+
+  inspect : ∀ {a} {A : Set a} (x : A) → Singleton x
+  inspect x = x with≡ refl
+
+  

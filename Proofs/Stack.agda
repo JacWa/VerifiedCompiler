@@ -14,7 +14,7 @@ module Proofs.Stack where
     exec1 : ∀ {p c}{vpc : Lem2 (pc c) p} → (i : Inst){ieq : i ≡ (inst p (pc c) {vpc})}{vh : Lem1 i (height (stack c))} → p ⊢ c ⇒ iexe i c vh
 
   data _⊢_⇒*_ : Prog → Config → Config → Set where
-    refl : ∀ {p c} → (end : (pc c) ℤ≡ size p) → p ⊢ c ⇒* c
+    0r   : ∀ {p c} → (end : (pc c) ℤ≡ size p) →             p ⊢ c ⇒* c
     step : ∀ {p c c' c''} → p ⊢ c ⇒ c' → p ⊢ c' ⇒* c'' → p ⊢ c ⇒* c''
   
 {--  data _↓_↦_ : Prog → Config → Config → Set where --does it make sense to define bss for this? bss should jump through whole prog? sss wuld do what I've done here?
@@ -22,8 +22,8 @@ module Proofs.Stack where
     LVAR : ∀ {p stt stk pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOAD v}   → p ↓ config stt stk pc ↦ config stt ((get-var v stt) , stk) (zuc pc) --}
 {--
   data _×_⇒_ : Prog → Config → Config → Set where
-    ×NOTHING : ∀ {p state stack pc}{done : pc ≡ size p} → p × config state stack pc ⇒ config state stack pc
-    ×LOADI : ∀ {p state stack pc n}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOADI n} → p × config state stack pc ⇒ config state (n , stack) (zuc pc)
+    ×NOTHING : ∀ {p c}{done : pc ≡ size p} → p × c ⇒ c
+    ×LOADI : ∀ {p c c' n}{vpc : Lem2 (pc c) p}{ieq : inst p (pc c) {vpc} ≡ LOADI n} → p × (iexe ) ⇒ c' → p × c ⇒ c'
     ×LOAD : ∀ {p state stack pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOAD v} → p × config state stack pc ⇒ config state ((get-var v state) , stack) (zuc pc)
     ×STORE : ∀ {p state n rest pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ STORE v} → p × config state (n , rest) pc ⇒ config (set-var v n state) rest (zuc pc)
     ×ADD : ∀ {p state n1 n2 rest pc}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ ADD} → p × config state (n1 , n2 , rest) pc ⇒ config state ((n1 + n2) , rest) (zuc pc)
