@@ -53,23 +53,48 @@ module Proofs.Compiler where
   compile>0 (IF b THEN x ELSE y) = ≤trans (s≤s z≤n) (size`&2 {bcomp b false (zuc (size (compile x)))} {compile x} {JMP (size (compile y)) :: []} {compile y})
   compile>0 (WHILE b DO x) = ≤trans (s≤s z≤n) (size`&3 {bcomp b false (size (compile x) z+ pos 1)} {compile x} {JMP (neg (pos (size` (bcomp b false (pos (size` (compile x) ℕ+ 1))) ℕ+ size` (compile x) ℕ+ 1))) :: []})
 
---  ... | true | true rewrite size`&+ {compile x} {compile y}  = ≤+ {1} {size` (compile x)} {size` (compile y)} (compile>0 x {{!!}})
-
-
-  verskips : ∀ {eprog state'} → ⟦ ⟦⟧ , eprog ⟧↦⟦ state' , SKIP ⟧ → notSKIP eprog ≡ false → state' ≡ ⟦⟧
+{--
+  verskips : ∀ {eprog state'} → [ ⟦⟧ , eprog ]⇓ state' → notSKIP eprog ≡ false → state' ≡ ⟦⟧
   verskips skip p = refl
-  verskips (seqbase a) p = verskips a p
+  verskips (seqbase) p = verskips a p
   verskips (seqstep a b) p with verskips a (∨fs1 p)
   ... | refl with verskips b (∨fs2 p)
   ... | refl = refl
   verskips assign ()
   verskips (iftrue _) ()
   verskips (iffalse _) ()
-  verskips (whiletrue _) ()
-  verskips whilefalse ()
+  verskips (while _) ()
+  verskips while ()
+--}
+
+{--
+  verskips : ∀ {s} → (eprog : IExp) → notSKIP eprog ≡ false → [ eprog , s ]⇓ s
+  verskips SKIP refl = Skip
+  verskips (a ⋯ b) p = Seq (verskips a (∨fs1 p)) (verskips b (∨fs2 p))
+  verskips (_ ≔ _) ()
+  verskips (IF _ THEN _ ELSE _) ()
+  verskips (WHILE _ DO _) ()
+--}
+
+  t : (eprog : IExp){p : Prog} → compile eprog ≡ p
+  t (x ≔ (NAT n)) {LOADI _ :: STORE _ :: []}= {!!}
   
 
-  verify : ∀ {conf' state'}(eprog : IExp){bsse : ⟦ ⟦⟧ , eprog ⟧↦⟦ state' , SKIP ⟧}{rsteps :  (compile eprog) ⊢ (config ⟦⟧ $ (pos 0)) ⇒* conf'} → state' ≡ (STATE conf')
-  verify i {_} {0r _} with inspect (notSKIP i)
-  verify i {b} {0r _} | false with≡ p = verskips b p
-  verify i {_} {0r end} | true with≡ p = {!!}
+  verify : ∀ {state state' conf' eprog'}(eprog : IExp) → ⟦ state , eprog ⟧↦⟦ state' , eprog' ⟧ → (compile eprog) × (config state $ (pos 0)) ⇒* conf' → state' ≡ (STATE conf')
+  verify SKIP ()
+  verify a seqbase none = refl
+  verify (a ⋯ b) (seqstep stp) none rewrite verify a stp none = refl
+  verify (a ⋯ b) (seqstep stp) (join p q) rewrite verify a stp (join _ _) = refl
+  verify a while none = refl
+  verify a while (join ×LOADI none) = refl
+  verify (x ≔ (NAT n)) assign (join ×LOADI (join ×STORE none)) = {!!}
+
+{--
+  -- verifies valid finite programs
+  verify : ∀ {conf' state'}(eprog : IExp){ssse : ⟦ ⟦⟧ , eprog ⟧↦⟦ state' , SKIP ⟧}{rsteps :  (compile eprog) ⊢ (config ⟦⟧ $ (pos 0)) ⇒* conf'} → state' ≡ (STATE conf')
+  verify i {_} {0r _ _} with inspect (notSKIP i)
+  verify i {ss} {0r _ _} | false with≡ p = {!!}
+--  verify i {_} {0r _ _} | true with≡ p with compile>0 i {p}
+--  verify i {_} {0r _ (+≤+ (_))} | true with≡ p | a
+  --}
+  -- verifies non-terminating programs

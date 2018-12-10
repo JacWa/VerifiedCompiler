@@ -8,36 +8,110 @@ module Proofs.Stack where
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Equality
   open import Data.Star
+  open import Data.Nat.Base
+  open import Proofs.Basic
+  open import Proofs.NatProofs
 
 
   data _⊢_⇒_ : Prog → Config → Config → Set where
-    exec1 : ∀ {p c}{vpc : Lem2 (pc c) p} → (i : Inst){ieq : i ≡ (inst p (pc c) {vpc})}{vh : Lem1 i (height (stack c))} → p ⊢ c ⇒ iexe i c vh
+    exec1 : ∀ {p c} → (i : Inst)(lb : (pos 0) ≤ (pc c) `ℤ`)(ub : (pc c)  < (size p) `ℤ`){ieq : i ≡ (inst p (pc c) lb ub)}{vh : Lem1 i (height (stack c))} → p ⊢ c ⇒ iexe i c vh
 
   data _⊢_⇒*_ : Prog → Config → Config → Set where
-    0r   : ∀ {p c} → (end : (pc c) ℤ≡ size p) →             p ⊢ c ⇒* c
+    0r   : ∀ {p c} → p ⊢ c ⇒* c
     step : ∀ {p c c' c''} → p ⊢ c ⇒ c' → p ⊢ c' ⇒* c'' → p ⊢ c ⇒* c''
+
+  data _×_⇒_  : Prog → Config → Config → Set where
   
-{--  data _↓_↦_ : Prog → Config → Config → Set where --does it make sense to define bss for this? bss should jump through whole prog? sss wuld do what I've done here?
-    LIMM : ∀ {p stt stk pc n}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOADI n}  → p ↓ config stt stk pc ↦ config stt (n , stk) (zuc pc)
-    LVAR : ∀ {p stt stk pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOAD v}   → p ↓ config stt stk pc ↦ config stt ((get-var v stt) , stk) (zuc pc) --}
-{--
-  data _×_⇒_ : Prog → Config → Config → Set where
-    ×NOTHING : ∀ {p c}{done : pc ≡ size p} → p × c ⇒ c
-    ×LOADI : ∀ {p c c' n}{vpc : Lem2 (pc c) p}{ieq : inst p (pc c) {vpc} ≡ LOADI n} → p × (iexe ) ⇒ c' → p × c ⇒ c'
-    ×LOAD : ∀ {p state stack pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ LOAD v} → p × config state stack pc ⇒ config state ((get-var v state) , stack) (zuc pc)
-    ×STORE : ∀ {p state n rest pc v}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ STORE v} → p × config state (n , rest) pc ⇒ config (set-var v n state) rest (zuc pc)
-    ×ADD : ∀ {p state n1 n2 rest pc}{vpc : Lem2 pc p}{eqi : inst p pc {vpc} ≡ ADD} → p × config state (n1 , n2 , rest) pc ⇒ config state ((n1 + n2) , rest) (zuc pc)
+    ×LOADI        : ∀ {p state stack pc n}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ LOADI n}
+                    ------------------------------------------------------------------------
+                       → p × config state stack pc ⇒ config state (n , stack) (zuc pc)
 
 
---}
+    ×LOAD         :      ∀ {p state stack pc v}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ LOAD v}
+                    ---------------------------------------------------------------------------------
+                    → p × config state stack pc ⇒ config state ((get-var v state) , stack) (zuc pc)
 
 
+    ×STORE        :   ∀ {p state rest n pc v}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ STORE v}
+                    -----------------------------------------------------------------------------
+                    → p × config state (n , rest) pc ⇒ config (set-var v n state) rest (zuc pc)
 
 
+    ×ADD          :       ∀ {p state rest n1 n2 pc}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ ADD}
+                    -----------------------------------------------------------------------------------
+                    → p × config state (n1 , n2 , rest) pc ⇒ config state ((n1 + n2) , rest) (zuc pc)
 
 
+    ×JMP          : ∀ {p state stack pc z}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ JMP z}
+                    ----------------------------------------------------------------------
+                       → p × config state stack pc ⇒ config state stack (zuc pc z+ z)
 
 
+    ×JMPLESStrue  : ∀ {p state rest head next pc z}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ JMPLESS z}{ineq : head ≤ next}
+                    -------------------------------------------------------------------------------------------------------
+                                → p × config state (head , next , rest) pc ⇒ config state rest (zuc pc)
+
+
+    ×JMPLESSfalse : ∀ {p state rest head next pc z}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ JMPLESS z}{ineq : head > next}
+                   --------------------------------------------------------------------------------------------------------
+                               → p × config state (head , next , rest) pc ⇒ config state rest (zuc pc z+ z)
+
+
+    ×JMPGEtrue    : ∀ {p state rest head next pc z}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ JMPGE z}{ineq : head ≤ next}
+                   ------------------------------------------------------------------------------------------------------
+                              → p × config state (head , next , rest) pc ⇒ config state rest (zuc pc z+ z)
+
+
+    ×JMPGEfalse   : ∀ {p state rest head next pc z}(lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size p) `ℤ`){eqi : inst p pc lb ub ≡ JMPGE z}{ineq : head > next}
+                   ------------------------------------------------------------------------------------------------------
+                              → p × config state (head , next , rest) pc ⇒ config state rest (zuc pc)
+
+  data _×_⇒*_ : Prog → Config → Config → Set where
+
+    none : ∀ {p c} →  
+                       -----------------
+                         p × c ⇒* c
+
+
+    some : ∀ {p c c' c''} →   p × c ⇒ c' → p × c' ⇒* c'' →
+                              ---------------------------------
+                                       p × c ⇒* c''
+
+{--  &:: : ∀ {i is p'} → (i :: is) & p' ≡ i :: (is & p')
+  &:: = refl
+  
+  redinst : ∀ i is n ub → inst (i :: is) (pos (suc n)) (+≤+ z≤n) (+≤+ (s≤s ub)) ≡ inst is (pos n) (+≤+ z≤n) (+≤+ ub)
+  redinst i is n ub = refl --}
+
+  addRightPC : ∀ {p q pc ub' lb} → (ub : pc < (size p) `ℤ`) → inst p pc lb ub ≡ inst (p & q) pc lb ub'
+  addRightPC {[]} {q} {pos n} (+≤+ ())
+  addRightPC {pc = negsuc n} {lb = ()}
+  addRightPC {i :: is} {q} {pos 0} ub = refl
+  addRightPC {i :: is} {q} {pos (suc n)} {+≤+ (s≤s ub')} (+≤+ (s≤s ub)) = addRightPC {is} {q} {pos n} (+≤+ ub)
+
+ {-- addRight : ∀ {p q c c'} → p × c ⇒ c' → (p & q) × c ⇒ c'
+  addRight {p} {[]} rewrite &[] {p} = λ z → z
+  addRight {p} {i :: is} = {!!}
+
+
+  addRight* : ∀ {p q c c'} → p × c ⇒* c' → (p & q) × c ⇒* c'
+  addRight* none = none
+  addRight* (some one rest) = some (addRight one) (addRight* rest) --}
+
+
+  p<+ : ∀ {q y p} → (pos 0) ≤ (size q) `ℤ` → y < (size p) `ℤ` → y < (size (p & q)) `ℤ`
+  p<+ {q} {y} {p} (+≤+ z≤n) ub rewrite size&+ p q = ℤ<+s {pos (size` q)} {y} {pos (size` p)} (+≤+ z≤n) ub
+
+  i≡p : ∀ p q pc lb ub ub' i → i ≡ inst p pc lb ub → i ≡ inst (p & q) pc lb ub'
+  i≡p p q pc lb ub ub' i prf rewrite prf = addRightPC {p} {q} {pc} {ub'} {lb} ub
+
+  add⊢Right :  ∀ {p q c c'} → p ⊢ c ⇒ c' → (p & q) ⊢ c ⇒ c'
+  add⊢Right {p} {[]} rewrite &[] {p} = λ z → z
+  add⊢Right {p} {q} (exec1 {p} {c} i lb ub {ieq} {vh}) = exec1 i lb (p<+ (+≤+ z≤n) ub) {i≡p p q (pc c) lb ub (p<+ (+≤+ z≤n) ub) i ieq} {vh}
+
+  add⊢Right* : ∀ {p q c c'} → p ⊢ c ⇒* c' → (p & q) ⊢ c ⇒* c'
+  add⊢Right* 0r = 0r
+  add⊢Right* (step one then) = step (add⊢Right one) (add⊢Right* then) 
 
 
 

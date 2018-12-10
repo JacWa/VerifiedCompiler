@@ -46,11 +46,11 @@ module Lang.Stack where
   iexe (STORE name) (config state (head , rest)          pc) store = config (set-var name head state) rest (zuc pc)
   iexe (JMP x)      (config state stack                  pc) jmp   = config state stack (zuc pc z+ x)
   iexe (JMPLESS x)  (config state (head , (next , rest)) pc) jmp< with (is head ≤ next)
-  ... | true                                                       = config state (head , (next , rest)) (zuc pc) -- if next ≮ head, continue
-  ... | false                                                      = config state (head , (next , rest)) (zuc pc z+ x)      -- if next < head, jump
+  ... | true                                                       = config state rest (zuc pc) -- if next ≮ head, continue
+  ... | false                                                      = config state rest (zuc pc z+ x)      -- if next < head, jump
   iexe (JMPGE x)    (config state (head , (next , rest)) pc) jmp≥ with (is head ≤ next)
-  ... | true                                                       = config state (head , (next , rest)) (zuc pc z+ x)      -- if next ≥ head, jump
-  ... | false                                                      = config state (head , (next , rest)) (zuc pc) -- if next ≱ head, continue
+  ... | true                                                       = config state rest (zuc pc z+ x)      -- if next ≥ head, jump
+  ... | false                                                      = config state rest (zuc pc) -- if next ≱ head, continue
   
   iexe ADD         (config _ (_ , $) _) ()
   iexe (JMPLESS _) (config _ (_ , $) _) ()
@@ -59,7 +59,6 @@ module Lang.Stack where
   iexe (STORE _)   (config _ $ _) ()
   iexe (JMPLESS _) (config _ $ _) ()
   iexe (JMPGE _)   (config _ $ _) ()
-  
   
   infixr 20 _::_
   data Prog : Set where
@@ -128,6 +127,12 @@ module Lang.Stack where
   size`& {[]} {q} rewrite &[] {q} = ℕ≤=
   size`& {x :: xs} {q} rewrite size`&+ {x :: xs} {q} = ℕ≤s {base = ℕ≤+}
 
+  size&[] : ∀ {p} → size p ≡ size (p & [])
+  size&[] {p} rewrite &[] {p} = refl
+
+  <size&[] : ∀ {p pc} → pc < (size p) `ℤ` ≡ pc < (size (p & [])) `ℤ`
+  <size&[] {p} rewrite &[] {p} = refl
+
   size& : ∀ {p q} → (size q) ≤ (size (p & q)) `ℤ`
   size& {[]} {q} rewrite &[] {q} = +≤+ ℕ≤=
   size& {x :: xs} {q} rewrite size`&+ {x :: xs} {q} = +≤+ (ℕ≤s {base = ℕ≤+})
@@ -138,16 +143,25 @@ module Lang.Stack where
   size`&3 : ∀ {a b c} → size` c ≤ size` (a & b & c)
   size`&3 {a} {b} {c} rewrite size`&+ {a} {b & c} | size`&+ {b} {c} | +comm (size` b) (size` c) | +oswap (size` a) (size` c) (size` b) = ≤+ ≤=
 
+  size:: : ∀ i is → size (i :: is) ≡ pos (suc (size` is))
+  size:: i is = refl
+
+  size&+ : ∀ p q → size (p & q) ≡ (size p) z+ (size q)
+  size&+ [] [] = refl
+  size&+ [] (i :: is) = refl
+  size&+ (i :: is) [] rewrite z+comm (size is) (pos zero) | +comm (size` is) 0 | &[] {is} = refl
+  size&+ (i :: is) (j :: js) rewrite size:: i is | size`&+ {is} {j :: js} = refl
+
 ----------
   
   data Lem2 : ℤ → Prog → Set where
     validPC : {pc : ℤ}{prog : Prog}{GZproof : (pos 0) ≤ pc `ℤ`}{LEproof : pc  < (size prog) `ℤ`} → Lem2 pc prog
 
-  inst : (prog : Prog) → (pc : ℤ) → {proof : Lem2 pc prog} → Inst
-  inst (i :: is) (pos 0)       = i
-  inst (i :: is) (pos (suc n)) {validPC {LEproof = +≤+ (s≤s p)}}= inst is (pos n) {validPC {GZproof = +≤+ z≤n} {+≤+ {suc n} {size` is} p}}
-  inst []        (pos n)       {validPC {LEproof = +≤+ ()}}
-  inst _ (negsuc _) {validPC {GZproof = ()}}
+  inst : (prog : Prog) → (pc : ℤ) → (lb : (pos 0) ≤ pc `ℤ`)(ub : pc  < (size prog) `ℤ`) → Inst
+  inst (i :: is) (pos 0)       _ _             = i
+  inst (i :: is) (pos (suc n)) _ (+≤+ (s≤s p)) = inst is (pos n) (+≤+ z≤n) (+≤+ {suc n} {size` is} p)
+  inst []        (pos n)       _ (+≤+ ())
+  inst _ (negsuc _) ()
   
 
   {-- step : (p : Prog)(c : Config){vpc : Lem2 (pc c) p}{vh : Lem1 (inst p (pc c) {vpc}) (height (stack c))} → Config
