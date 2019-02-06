@@ -15,10 +15,10 @@ module Misc.Base where
   is (suc y) ≤ 0       = false
   is (suc y) ≤ (suc x) = is y ≤ x
 
-  infixr 20 _×_ _ω_
+  {--infixr 20 _×_ _ω_
   data _ω_ {A B : Set} : Set → Set → Set where
     _×_ : (a : A)(b : B) → A ω B
-
+--}
   ≤trans : ∀ {x y z} → x ≤ y → y ≤ z → x ≤ z
   ≤trans {0} _ _ = _≤_.z≤n
   ≤trans {suc a} (_≤_.s≤s p) (_≤_.s≤s q) = _≤_.s≤s (≤trans p q)
@@ -182,3 +182,16 @@ module Misc.Base where
   inspect x = x with≡ refl
 
   
+  ! : Bool → Bool
+  ! false = true
+  ! true = false
+
+  _∧_ : Bool → Bool → Bool
+  false ∧ _ = false
+  true ∧ b = b
+
+  sucn : ℤ → ℕ → ℤ
+  sucn z                0       = z
+  sucn (pos x)          (suc y) = sucn (pos (suc x)) y
+  sucn (negsuc 0)       (suc y) = sucn (pos 0) y
+  sucn (negsuc (suc x)) (suc y) = sucn (negsuc x) y

@@ -14,11 +14,49 @@ module Proofs.Compiler where
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
   open import Data.Nat.Base
 
- {-- correctness : ∀ {state conf' state'}(eprog : IExp){bsse : [ eprog , state ]↦ state'}{bsss : ⦅ (compile eprog) , (config state $ (pos 0)) ⦆↦ conf'} → state' ≡ (STATE conf')
-  correctness SKIP {Skip} {base} = refl
-  correctness (x ≔ n) {Assign} {trans (step {defc' = defc'}) _} rewrite defc' = {!!}
---}
+  _∘_ : {A B C : Set} → (A → B) → (B → C) → (A → C)
+  (f ∘ g) x = g (f x) 
 
+  Fₐ : AExp → ℤ
+  Fₐ = acomp ∘ size
+
+  F : IExp → ℤ
+  F SKIP  = pos 0
+  F (x ≔ n) = pos 1 z+ (Fₐ n)
+  F (SKIP ⋯ E) = pos 0
+  F (E ⋯ E') = F E
+  F (IF _ THEN _ ELSE _) = pos 0
+  F (WHILE _ DO _) = pos 0
+
+  {--
+
+  asound :  ∀ a {σ n s} → [ a , σ ]⇃ n → acomp a × config σ s (pos 0) ⇒* config σ (n , s) (size (acomp a))
+  asound (NAT n) Nat = some (×LOADI refl) (none refl)
+  asound (VAR x) Vrr = some (×LOAD refl) (none refl)
+  asound (m + n) (Pls aₘ aₙ) = {!!}
+ --}
+
+
+  asound : ∀ a {σ s} → acomp a × config σ s (pos 0) ⇒* config σ (aexe a σ , s) (size (acomp a))
+  asound (NAT n) = some (×LOADI refl) (none refl)
+  asound (VAR x) = some (×LOAD refl) (none refl)
+  asound (m + n) = {!!}
+
+  sound : ∀ E {E' σ σ' s} → ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → compile E × config σ s (pos 0) ⇒* config σ' s (F E)
+  sound SKIP ()
+  sound (x ≔ a) assign with a
+  ... | NAT n = some (×LOADI refl) (some (×STORE refl) (none refl))
+  ... | VAR s = some (×LOAD refl) (some (×STORE refl) (none refl))
+  ... | m + n = {!!}
+  sound (SKIP ⋯ E) seqbase = none refl
+  sound (E ⋯ E') (seqstep {SKIP} ())
+  sound (E ⋯ E') (seqstep p) = {!!}
+  sound (IF b THEN x ELSE y) (iftrue p) = none refl
+  sound (IF b THEN x ELSE y) (iffalse p) = none refl
+  sound (WHILE b DO c) while = none refl 
+
+
+{--
   sizeassign : ∀ {n x} → (pos 1) ≤ size (compile (x ≔ n)) `ℤ`
   sizeassign {NAT a} = +≤+ (s≤s z≤n)
   sizeassign {VAR s} = +≤+ (s≤s z≤n)
@@ -76,19 +114,64 @@ module Proofs.Compiler where
   verskips (WHILE _ DO _) ()
 --}
 
-  t : (eprog : IExp){p : Prog} → compile eprog ≡ p
-  t (x ≔ (NAT n)) {LOADI _ :: STORE _ :: []}= {!!}
   
 
-  verify : ∀ {state state' conf' eprog'}(eprog : IExp) → ⟦ state , eprog ⟧↦⟦ state' , eprog' ⟧ → (compile eprog) × (config state $ (pos 0)) ⇒* conf' → state' ≡ (STATE conf')
+  &right : ∀ P Q {C C'} → P × C ⇒* C' → (P & Q) × C ⇒* C' 
+  &right = {!!}
+
+  rw : ∀ P Q → compile (P ⋯ Q) ≡ compile P & compile Q
+  rw P Q = {!!}
+
+  feskip : IExp → Bool
+  feskip SKIP = true
+  feskip (SKIP ⋯ E) = true
+  feskip _ = false
+  
+  ns⇒dn : ∀ E E' {C C'} → notSKIP E ≡ false → compile E' × C ⇒* C' → compile (E ⋯ E') × C ⇒* C'
+  ns⇒dn = {!!}
+  
+
+  verify : ∀ {σ σ' E' pc' stk}(E : IExp)(lb : (pos 0) ≤ (pos 0) `ℤ`)(ub : (pos 0)  < (size (compile E)) `ℤ`) →
+           --------------------------------------------------------------------------------------------------
+                  ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → (compile E) × (config σ stk (pos 0)) ⇒* (config σ' stk pc')
+  verify SKIP _ _ ()
+  verify (x ≔ n) lb ub assign with n   ---------------- I HAVE TO ASSUME pc' ≡ 2!!!!
+  ... | NAT m = some (×LOADI {n = m} lb ub {refl}) (some (×STORE (+≤+ z≤n) (+≤+ (s≤s (s≤s z≤n))) {refl}) (none {!!}))
+  ... | VAR y = {!!}
+  ... | a + b = {!!}
+  verify (E ⋯ E') lb ub seqbase = none {!!}
+  verify (E ⋯ E') lb ub (seqstep s) with inspect (notSKIP E)
+  ... | true with≡ p = &right (compile E) (compile E') (verify E lb (+≤+ (compile>0 E {p})) s)
+  verify {σ} {σ'} {E''} {pc'} {stk} (E ⋯ E') lb ub (seqstep s) | false with≡ p = ns⇒dn E E' p (verify E' lb {!!} {!!})
+
+  bssound : ∀ E {σ σ' stk} → [ E , σ ]⇓ σ' → (compile E) × (config σ stk (pos 0)) ⇒* (config σ' stk (size (compile E)))
+  bssound SKIP Skip = none refl
+  bssound (x ≔ n) Assign with n
+  ... | NAT i = {!!}
+{--
+  verify (E ⋯ E') lb ub _ with inspect (notSKIP E)
+  verify _ _ _ seqbase | false with≡ p = none {!!}
+  verify (E ⋯ E') lb ub (seqstep s) | true with≡ p = &right (compile E) (compile E') (verify E lb (+≤+ (compile>0 E {p})) s)
+  verify _ _ _ seqbase | true with≡ ()
+  verify (E ⋯ E') lb ub (seqstep s) | false with≡ p with feskip E
+  verify (E ⋯ E') lb ub (seqstep s) | false with≡ p | true = {!!}
+  verify (E ⋯ E') lb ub (seqstep s) | false with≡ () | false --}
+  {--
+  verify _ _ _ seqbase | SKIP = none {!!}
+  verify (E ⋯ E') lb ub (seqstep s) | (e) = &right (compile (e)) (compile E') (verify (e) lb (+≤+ (compile>0 (e) {refl})) s)
+--}
+  
+
+{--
+  verify : ∀ {state state' conf' eprog' stack pc}(eprog : IExp) → ⟦ state , eprog ⟧↦⟦ state' , eprog' ⟧ → (compile eprog) × (config state stack (pc)) ⇒* conf' → state' ≡ (STATE conf')
   verify SKIP ()
   verify a seqbase none = refl
   verify (a ⋯ b) (seqstep stp) none rewrite verify a stp none = refl
-  verify (a ⋯ b) (seqstep stp) (join p q) rewrite verify a stp (join _ _) = refl
+  -- verify (a ⋯ b) (seqstep stp) (some p q) rewrite verify a stp (some _ _) = refl
   verify a while none = refl
-  verify a while (join ×LOADI none) = refl
-  verify (x ≔ (NAT n)) assign (join ×LOADI (join ×STORE none)) = {!!}
-
+  -- verify a while (some ×LOADI none) = refl
+  -- verify (x ≔ (NAT n)) assign (some ×LOADI (some ×STORE none)) = {!!}
+--}
 {--
   -- verifies valid finite programs
   verify : ∀ {conf' state'}(eprog : IExp){ssse : ⟦ ⟦⟧ , eprog ⟧↦⟦ state' , SKIP ⟧}{rsteps :  (compile eprog) ⊢ (config ⟦⟧ $ (pos 0)) ⇒* conf'} → state' ≡ (STATE conf')
@@ -98,3 +181,4 @@ module Proofs.Compiler where
 --  verify i {_} {0r _ (+≤+ (_))} | true with≡ p | a
   --}
   -- verifies non-terminating programs
+--}

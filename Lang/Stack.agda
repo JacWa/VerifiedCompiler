@@ -6,6 +6,7 @@ module Lang.Stack where
   open import Agda.Builtin.Equality
   open import Data.String.Base
   open import Data.Bool
+  open import Data.Maybe
   open import Proofs.NumProofs
   open import Proofs.NatProofs
   open import Proofs.Basic
@@ -43,7 +44,7 @@ module Lang.Stack where
   iexe (LOADI n)    (config state stack                  pc) loadi = config state (n , stack) (zuc pc)
   iexe (LOAD name)  (config state stack                  pc) load  = config state ((get-var name state) , stack) (zuc pc)
   iexe ADD          (config state (head , (next , rest)) pc) add   = config state ((head ℕ+ next) , rest) (zuc pc)
-  iexe (STORE name) (config state (head , rest)          pc) store = config (set-var name head state) rest (zuc pc)
+  iexe (STORE name) (config state (head , rest)          pc) store = config ((name ≔ head) ∷ state) rest (zuc pc)
   iexe (JMP x)      (config state stack                  pc) jmp   = config state stack (zuc pc z+ x)
   iexe (JMPLESS x)  (config state (head , (next , rest)) pc) jmp< with (is head ≤ next)
   ... | true                                                       = config state rest (zuc pc) -- if next ≮ head, continue
@@ -162,6 +163,14 @@ module Lang.Stack where
   inst (i :: is) (pos (suc n)) _ (+≤+ (s≤s p)) = inst is (pos n) (+≤+ z≤n) (+≤+ {suc n} {size` is} p)
   inst []        (pos n)       _ (+≤+ ())
   inst _ (negsuc _) ()
+
+
+  _፦_ : Prog → ℤ → Maybe Inst  
+  []        ፦ _             = nothing
+  _         ፦ (negsuc _)    = nothing
+  (i :: is) ፦ (pos 0)       = just i
+  (i :: is) ፦ (pos (suc n)) = is ፦ (pos n)
+  
   
 
   {-- step : (p : Prog)(c : Config){vpc : Lem2 (pc c) p}{vh : Lem1 (inst p (pc c) {vpc}) (height (stack c))} → Config

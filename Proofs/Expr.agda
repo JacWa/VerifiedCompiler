@@ -4,6 +4,39 @@ module Proofs.Expr where
   open import Base.DataStructures
   open import Agda.Builtin.Equality
   open import Agda.Builtin.Bool
+  open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
+  open import Misc.Base
+
+  -- Big step semantics on AExp.
+  data [_,_]⇃_ : AExp → State → ℕ → Set where
+
+    Nat : ∀ {n s} → [ NAT n , s ]⇃ n
+    Vrr : ∀ {x s} → [ VAR x , s ]⇃ (get-var x s)
+    Pls : ∀ {a b x y s} → [ a , s ]⇃ x → [ b , s ]⇃ y →
+                          --------------------------------
+                              [ a + b , s ]⇃ (x ℕ+ y)
+
+
+
+  A⇃ : ∀ {s} → (a : AExp) → [ a , s ]⇃ (aexe a s)
+  A⇃ (NAT n) = Nat
+  A⇃ (VAR x) = Vrr
+  A⇃ (a + b) = Pls (A⇃ a) (A⇃ b)
+
+  -- Big step semantics on BExp.
+  data [_,_]⇂_ : BExp → State → Bool → Set where
+
+    Lit : ∀ {b s} → [ BOOL b , s ]⇂ b
+    Not : ∀ {e b s} → [ e , s ]⇂ b →
+                  ---------------------
+                   [ NOT e , s ]⇂ (! b)
+    And : ∀ {e₁ e₂ b₁ b₂ s} → [ e₁ , s ]⇂ b₁ → [ e₂ , s ]⇂ b₂ →
+                           ---------------------------------------
+                                 [ e₁ AND e₂ , s ]⇂ (b₁ ∧ b₂)
+    Lss : ∀ {a₁ a₂ n₁ n₂ s} → [ a₁ , s ]⇃ n₁ → [ a₂ , s ]⇃ n₂ →
+                           ---------------------------------------
+                                [ a₁ LT a₂ , s ]⇂ (n₁ < n₂)
+    
 
   -- Big step semantics.
   data [_,_]⇓_ : IExp → State → State → Set where
@@ -15,7 +48,7 @@ module Proofs.Expr where
 
     Assign     : ∀ {x n s} → 
                                -------------------------------------------
-                                [ (x ≔ n) , s ]⇓ set-var x (aexe n s) s
+                                [ (x ≔ n) , s ]⇓ ((x ≔ (aexe n s)) ∷ s)
 
 
     Seq        : ∀ {s s' s'' this that} →   [ this , s ]⇓ s' → [ that , s' ]⇓ s'' → 
@@ -47,7 +80,7 @@ module Proofs.Expr where
 
     assign  : ∀ {x n s} →
                             ---------------------------------------------------
-                             ⟦ s , (x ≔ n) ⟧↦⟦ set-var x (aexe n s) s , SKIP ⟧
+                             ⟦ s , (x ≔ n) ⟧↦⟦ (x ≔ (aexe n s)) ∷ s , SKIP ⟧
 
 
     seqbase : ∀ {s that} →
@@ -55,7 +88,7 @@ module Proofs.Expr where
                              ⟦ s , SKIP ⋯ that ⟧↦⟦ s , that ⟧
 
 
-    seqstep : ∀ {s s' this this' that} →         ⟦ s , this ⟧↦⟦ s' , this' ⟧ →
+    seqstep : ∀ {this s s' this' that} →         ⟦ s , this ⟧↦⟦ s' , this' ⟧ →
                                            ------------------------------------------
                                             ⟦ s , this ⋯ that ⟧↦⟦ s' , this' ⋯ that ⟧
 
@@ -73,17 +106,15 @@ module Proofs.Expr where
     while   : ∀ {s b c} →                         
                                   -----------------------------------------------------------------------
                                    ⟦ s , WHILE b DO c ⟧↦⟦ s , IF b THEN (c ⋯ (WHILE b DO c)) ELSE SKIP ⟧
-
 {--
-    whilefalse   : ∀ {s b c} →           bexe b s ≡ false
+    whilefalse   : ∀ {s b c} →           bexe b s ≡ false →
                                   -----------------------------------
                                    ⟦ s , WHILE b DO c ⟧↦⟦ s , SKIP ⟧
 
 
-    whiletrue   : ∀ {s b c} →                         bexe b s ≡ true
+    whiletrue   : ∀ {s b c} →                         bexe b s ≡ true →
                                   ---------------------------------------------------
                                    ⟦ s , WHILE b DO c ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) ⟧
-
 --}
 
 
