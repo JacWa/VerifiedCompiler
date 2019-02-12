@@ -43,9 +43,9 @@ module Lang.Stack where
   iexe : (i : Inst)(c : Config)(p : Lem1 i (height (stack c))) → Config
   iexe (LOADI n)    (config state stack                  pc) loadi = config state (n , stack) (zuc pc)
   iexe (LOAD name)  (config state stack                  pc) load  = config state ((get-var name state) , stack) (zuc pc)
-  iexe ADD          (config state (head , (next , rest)) pc) add   = config state ((head ℕ+ next) , rest) (zuc pc)
+  iexe ADD          (config state (head , (next , rest)) pc) add   = config state ((next ℕ+ head) , rest) (zuc pc)
   iexe (STORE name) (config state (head , rest)          pc) store = config ((name ≔ head) ∷ state) rest (zuc pc)
-  iexe (JMP x)      (config state stack                  pc) jmp   = config state stack (zuc pc z+ x)
+  iexe (JMP x)      (config state stack                  pc) jmp   = config state stack (x z+ (zuc pc))
   iexe (JMPLESS x)  (config state (head , (next , rest)) pc) jmp< with (is head ≤ next)
   ... | true                                                       = config state rest (zuc pc) -- if next ≮ head, continue
   ... | false                                                      = config state rest (zuc pc z+ x)      -- if next < head, jump
@@ -152,6 +152,13 @@ module Lang.Stack where
   size&+ [] (i :: is) = refl
   size&+ (i :: is) [] rewrite z+comm (size is) (pos zero) | +comm (size` is) 0 | &[] {is} = refl
   size&+ (i :: is) (j :: js) rewrite size:: i is | size`&+ {is} {j :: js} = refl
+
+  size`&= : ∀ p q → size` (p & q) ≡ size` p ℕ+ size` q
+  size`&= [] q = refl
+  size`&= (i :: is) q rewrite size`&= is q = refl
+
+  size`&3= : ∀ p q r → size` (p & q & r) ≡ size` p ℕ+ (size` q ℕ+ size` r)
+  size`&3= p q r rewrite sym (size`&= q r) | sym (size`&= p (q & r)) = refl
 
 ----------
   

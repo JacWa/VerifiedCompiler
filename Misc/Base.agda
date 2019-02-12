@@ -195,3 +195,28 @@ module Misc.Base where
   sucn (pos x)          (suc y) = sucn (pos (suc x)) y
   sucn (negsuc 0)       (suc y) = sucn (pos 0) y
   sucn (negsuc (suc x)) (suc y) = sucn (negsuc x) y
+
+
+  n-n≡0 : ∀ n → n n- n ≡ pos 0
+  n-n≡0 0 = refl
+  n-n≡0 (suc n) = n-n≡0 n 
+  
+  z-z≡0 : ∀ z → z z- z ≡ pos 0
+  z-z≡0 (pos 0) = refl
+  z-z≡0 (pos (suc n)) rewrite z-z≡0 (pos n) = n-n≡0 n
+  z-z≡0 (negsuc 0) = refl
+  z-z≡0 (negsuc (suc n)) rewrite z-z≡0 (negsuc n) = refl
+
+  0≡z-z : ∀ z → pos 0 ≡ z z- z
+  0≡z-z z = sym (z-z≡0 z)
+
+  z+1≡z[n+1] : ∀ n → pos (n + 1) ≡ pos n z+ pos 1
+  z+1≡z[n+1] n = refl
+
+  sucn-n≡1 : ∀ n → suc n n- n ≡ pos 1
+  sucn-n≡1 0 = refl
+  sucn-n≡1 (suc n) = sucn-n≡1 n
+
+  zucpn-pn≡1 : ∀ n → zuc (pos n) z- pos n ≡ pos 1
+  zucpn-pn≡1 0 = refl
+  zucpn-pn≡1 (suc n) rewrite zucpn-pn≡1 n = sucn-n≡1 n

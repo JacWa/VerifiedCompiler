@@ -3,8 +3,15 @@ module Proofs.NatProofs where
     open import Data.Nat.Base
     open import Relation.Nullary.Decidable
     open import Agda.Builtin.Equality
+    open import Proofs.Basic
 
-    
+    +1≡suc : (n : ℕ) → n + 1 ≡ suc n
+    +1≡suc 0 = refl
+    +1≡suc (suc n) rewrite +1≡suc n = refl
+
+    suc≡+1 : (n : ℕ) → suc n ≡ n + 1
+    suc≡+1 n = sym (+1≡suc n)
+
     *1 : (n : ℕ) → n * 1 ≡ n
     *1 0 = refl
     *1 (suc x) rewrite *1 x = refl

@@ -70,9 +70,9 @@ module Proofs.Stack where
 
   data _×_⇒*_ : Prog → Config → Config → Set where
 
-    none : ∀ {p σ s pc pc'} →                      pc ≡ pc'
+    none : ∀ {p σ s pc}-- pc'} →                       pc ≡ pc'
                                --------------------------------------------
-                                → p × (config σ s pc) ⇒* (config σ s pc')
+                                → p × (config σ s pc) ⇒* (config σ s pc)
 
 
     some : ∀ {p c c' c''} →   p × c ⇒ c' → p × c' ⇒* c'' →
@@ -107,6 +107,14 @@ module Proofs.Stack where
   stacklem1 : ∀ {p q c c'} → p ⊢ c ⇒* c' → (p & q) ⊢ c ⇒* c'
   stacklem1 0r = 0r
   stacklem1 (step one then) = step (stacklem1c one) (stacklem1 then)
+{--
+  stacklem2 : ∀ {p q σ σ' s s' pc pc'} → p ⊢ (config σ s pc) ⇒* (config σ' s' pc') → (q & p) ⊢ (config σ s (pc z+ (size q))) ⇒* (config σ' s' (pc' z+ (size q)))
+  stacklem2 = {!!}
+
+  compexec : ∀ {p q σ σ' σ'' s s' s'' pc' pc''} → p ⊢ (config σ s (pos 0)) ⇒ (config σ' s' pc') → size p ≡ pc' → p ⊢ (config σ' s' (pc' z- (size p))) ⇒ (config σ'' s'' pc'') →(p & q) ⊢ (config σ s (pos 0)) ⇒ (config σ'' s'' ((size p) z+ pc''))
+  compexec = {!!}
+
+  --}
 
 
 

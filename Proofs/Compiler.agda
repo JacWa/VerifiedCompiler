@@ -3,6 +3,7 @@ module Proofs.Compiler where
   open import Compiler
   open import Lang.Stack
   open import Lang.Expr
+  open import Proofs.Basic
   open import Proofs.Stack
   open import Proofs.Expr
   open import Proofs.NatProofs
@@ -12,11 +13,77 @@ module Proofs.Compiler where
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
-  open import Data.Nat.Base
+  open import Data.Nat.Base renaming (_+_ to _ℕ+_) hiding (_≟_)
+  open import Data.Bool.Base
+  open import Relation.Nullary
+
+  compexec : ∀ {p q σ σ' σ'' s s' s'' pc' pc''} → p ⊢ (config σ s (pos 0)) ⇒* (config σ' s' pc') → size p ≡ pc' → q ⊢ (config σ' s' (pos 0)) ⇒* (config σ'' s'' pc'') → (p & q) ⊢ (config σ s (pos 0)) ⇒* (config σ'' s'' ((size p) z+ pc''))
+  compexec = {!!}
 
   _∘_ : {A B C : Set} → (A → B) → (B → C) → (A → C)
   (f ∘ g) x = g (f x) 
 
+
+  asound :  ∀ a {σ s}  → acomp a ⊢ config σ s (pos 0) ⇒* config σ ((aexe a σ) , s) (size (acomp a))
+  asound (NAT n) = step (exec1 (LOADI n) refl {loadi}) 0r
+  asound (VAR x) = step (exec1 (LOAD x) refl {load}) 0r
+  asound (m + n) rewrite size`&3= (acomp m) (acomp n) (ADD :: []) = compexec (asound m) refl (compexec (asound n) refl (step  (exec1 ADD refl {add}) (0r)))
+
+
+{-Δpc : BExp → Bool → ℤ → ℤ
+  Δpc (BOOL b) f offset with b ≟ f
+  ... | yes refl = offset z+ (pos 1)
+  ... | no _     = pos 0
+  Δpc (NOT b) f offset = Δpc b (not f) offset
+  Δpc (a AND b) f offset = {!!}-}
+
+  Δpc : BExp → State → Bool → ℤ → ℤ
+{-  Δpc (BOOL b) _ f offset with b ≟ f
+  ... | yes refl = offset z+ (pos 1)
+  ... | no _     = pos 0
+  Δpc (NOT b) σ f offset = Δpc b σ (not f) offset
+  Δpc (a AND b) σ f offset with f
+  ... | true = {!!}
+  ... | false = {!!}
+-}
+  Δpc bexp σ flag offset with flag | bexe bexp σ
+  ... | true | true = offset z+ size (bcomp bexp flag offset)
+  ... | false | false = offset z+ size (bcomp bexp flag offset)
+  ... | true | false = size (bcomp bexp flag offset)  
+  ... | false | true = size (bcomp bexp flag offset)
+
+  bsound : ∀ b flag offset {σ s} → (bcomp b flag offset) ⊢ config σ s (pos 0) ⇒* config σ s (Δpc b σ flag offset)
+  bsound (BOOL true) true offset = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
+  bsound (BOOL false) false offset = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
+  bsound (BOOL true) false offset = 0r
+  bsound (BOOL false) true offset = 0r
+  bsound (NOT (BOOL b)) flag offset with b | flag
+  ... | true | true = 0r
+  ... | false | false = 0r
+  ... | true | false = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
+  ... | false | true = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
+
+
+
+  sound : ∀ E {σ σ' s} → [ E , σ ]⇓ σ' → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (size (compile E))
+  sound SKIP Skip = 0r
+  sound (x ≔ a) Assign rewrite size`&= (acomp a) (STORE x :: []) = compexec (asound a) refl (step (exec1 (STORE x ) refl {store}) (0r))
+  sound (P ⋯ Q) (Seq p q) rewrite size`&= (compile P) (compile Q) = compexec (sound P p) refl (sound Q q)
+{-sound (IF b THEN P ELSE Q) S with S
+  ... | IfFalse e q = {!!}
+  ... | IfTrue e p = {!!}-}
+  sound (WHILE b DO C) S with S
+  ... | WhileFalse e = compexec {!!} {!!} {!!}
+  ... | WhileTrue e c w = {!!}
+
+
+
+
+
+
+
+
+{-
   Fₐ : AExp → ℤ
   Fₐ = acomp ∘ size
 
@@ -28,6 +95,17 @@ module Proofs.Compiler where
   F (IF _ THEN _ ELSE _) = pos 0
   F (WHILE _ DO _) = pos 0
 
+  sssound : ∀ E {E' σ σ' s} → ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (F E)
+  sssound SKIP ()
+  sssound (x ≔ a) assign rewrite suc≡+1 (size` (acomp a)) | zucpn-pn≡1 (size` (acomp a)) = compexec (asound a) refl (step (exec1 (STORE x ) refl {store}) (0r))
+  sssound (SKIP ⋯ P) seqbase = 0r
+  sssound (P ⋯ Q) (seqstep p) = {!!}
+  sssound (IF b THEN x ELSE y) (iftrue p) = 0r
+  sssound (IF b THEN x ELSE y) (iffalse p) = 0r
+  sssound (WHILE b DO c) while = 0r
+-}
+  
+
   {--
 
   asound :  ∀ a {σ n s} → [ a , σ ]⇃ n → acomp a × config σ s (pos 0) ⇒* config σ (n , s) (size (acomp a))
@@ -36,26 +114,26 @@ module Proofs.Compiler where
   asound (m + n) (Pls aₘ aₙ) = {!!}
  --}
 
-
+{-
   asound : ∀ a {σ s} → acomp a × config σ s (pos 0) ⇒* config σ (aexe a σ , s) (size (acomp a))
-  asound (NAT n) = some (×LOADI refl) (none refl)
-  asound (VAR x) = some (×LOAD refl) (none refl)
+  asound (NAT n) = some (×LOADI refl) none
+  asound (VAR x) = some (×LOAD refl) none
   asound (m + n) = {!!}
 
   sound : ∀ E {E' σ σ' s} → ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → compile E × config σ s (pos 0) ⇒* config σ' s (F E)
   sound SKIP ()
   sound (x ≔ a) assign with a
-  ... | NAT n = some (×LOADI refl) (some (×STORE refl) (none refl))
-  ... | VAR s = some (×LOAD refl) (some (×STORE refl) (none refl))
+  ... | NAT n = {!!} --some (×LOADI refl) (some (×STORE refl) none)
+  ... | VAR s = some (×LOAD refl) (some (×STORE refl) none)
   ... | m + n = {!!}
-  sound (SKIP ⋯ E) seqbase = none refl
+  sound (SKIP ⋯ E) seqbase = none
   sound (E ⋯ E') (seqstep {SKIP} ())
   sound (E ⋯ E') (seqstep p) = {!!}
-  sound (IF b THEN x ELSE y) (iftrue p) = none refl
-  sound (IF b THEN x ELSE y) (iffalse p) = none refl
-  sound (WHILE b DO c) while = none refl 
+  sound (IF b THEN x ELSE y) (iftrue p) = none
+  sound (IF b THEN x ELSE y) (iffalse p) = none
+  sound (WHILE b DO c) while = none
 
-
+-}
 {--
   sizeassign : ∀ {n x} → (pos 1) ≤ size (compile (x ≔ n)) `ℤ`
   sizeassign {NAT a} = +≤+ (s≤s z≤n)
