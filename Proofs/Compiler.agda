@@ -63,7 +63,8 @@ module Proofs.Compiler where
   ... | true | false = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
   ... | false | true = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
 
-
+  whilefalsehelper : ∀ {bexp σ offset} → bexe bexp σ ≡ false → Δpc bexp σ false offset ≡ offset z+ size (bcomp bexp false offset)
+  whilefalsehelper = {!!}
 
   sound : ∀ E {σ σ' s} → [ E , σ ]⇓ σ' → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (size (compile E))
   sound SKIP Skip = 0r
@@ -72,8 +73,8 @@ module Proofs.Compiler where
 {-sound (IF b THEN P ELSE Q) S with S
   ... | IfFalse e q = {!!}
   ... | IfTrue e p = {!!}-}
-  sound (WHILE b DO C) S with S
-  ... | WhileFalse e = compexec {!!} {!!} {!!}
+  sound (WHILE b DO C) {σ} S with S
+  ... | WhileFalse e rewrite sym (whilefalsehelper {b} {σ} {size (compile C) z+ (pos 1)} e) = compexec (bsound b false (size (compile C) z+ (pos 1))) (refl) {!!}
   ... | WhileTrue e c w = {!!}
 
 
@@ -82,8 +83,8 @@ module Proofs.Compiler where
 
 
 
-
 {-
+
   Fₐ : AExp → ℤ
   Fₐ = acomp ∘ size
 
@@ -99,11 +100,11 @@ module Proofs.Compiler where
   sssound SKIP ()
   sssound (x ≔ a) assign rewrite suc≡+1 (size` (acomp a)) | zucpn-pn≡1 (size` (acomp a)) = compexec (asound a) refl (step (exec1 (STORE x ) refl {store}) (0r))
   sssound (SKIP ⋯ P) seqbase = 0r
-  sssound (P ⋯ Q) (seqstep p) = {!!}
+  sssound (P ⋯ Q) (seqstep p) = sssound P p
   sssound (IF b THEN x ELSE y) (iftrue p) = 0r
   sssound (IF b THEN x ELSE y) (iffalse p) = 0r
-  sssound (WHILE b DO c) while = 0r
--}
+  sssound (WHILE b DO c) while = 0r-}
+
   
 
   {--
