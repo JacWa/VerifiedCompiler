@@ -14,6 +14,18 @@ module Proofs.Stack where
   open import Proofs.NatProofs
   open import Relation.Binary
 
+ {- finalConfig : Prog → (fuel : ℕ) → Config → Config
+  finalConfig _ 0 c       = c
+  finalConfig P (suc n) (config σ s pc) with P ፦ pc
+  ... | nothing = config σ s pc
+  ... | just i with i
+  ... | LOADI x = finalConfig P n (iexe (LOADI x) (config σ s pc) loadi)
+  ... | LOAD  v = finalConfig P n (iexe (LOAD v) (config σ s pc) load)
+  ... | -}
+{-
+  finalState : Prog → (fuel : ℕ) → State
+  finalState P n = STATE (finalConfig P n (config ⟦⟧ $ (pos 0)))
+-}
 {--
   data _⊢_⇒_ : Prog → Config → Config → Set where
     exec1 : ∀ {p c} → (i : Inst)(lb : (pos 0) ≤ (pc c) `ℤ`)(ub : (pc c)  < (size p) `ℤ`){ieq : i ≡ (inst p (pc c) lb ub)}{vh : Lem1 i (height (stack c))} → p ⊢ c ⇒ iexe i c vh

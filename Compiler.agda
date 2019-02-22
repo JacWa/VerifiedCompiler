@@ -43,7 +43,7 @@ module Compiler where
   compile (x ≔ a) = acomp a & (STORE x :: [])
   compile (this ⋯ that) = compile this & compile that
   compile (IF bool THEN this ELSE that) with compile this | compile that
-  ... | THIS | THAT = (bcomp bool false (zuc (size THIS))) & THIS & (JMP (size THAT) :: [])  & THAT
+  ... | THIS | THAT = (bcomp bool false (size THIS z+ pos 1)) & THIS & (JMP (size THAT) :: [])  & THAT
   compile (WHILE b DO this) with compile this
   ... | body with bcomp b false (size body z+ pos 1)
   ... | control = control & body & (JMP (neg (size control z+ size body z+ pos 1) ) :: [])

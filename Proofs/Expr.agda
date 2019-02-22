@@ -102,12 +102,7 @@ module Proofs.Expr where
     iffalse : ∀ {s b i i'} →                  (bexe b s) ≡ false →
                                      ----------------------------------------
                                       ⟦ s , IF b THEN i ELSE i' ⟧↦⟦ s , i' ⟧
-
-
-    while   : ∀ {s b c} →                         
-                                  -----------------------------------------------------------------------
-                                   ⟦ s , WHILE b DO c ⟧↦⟦ s , IF b THEN (c ⋯ (WHILE b DO c)) ELSE SKIP ⟧
-{--
+                                      
     whilefalse   : ∀ {s b c} →           bexe b s ≡ false →
                                   -----------------------------------
                                    ⟦ s , WHILE b DO c ⟧↦⟦ s , SKIP ⟧
@@ -116,6 +111,7 @@ module Proofs.Expr where
     whiletrue   : ∀ {s b c} →                         bexe b s ≡ true →
                                   ---------------------------------------------------
                                    ⟦ s , WHILE b DO c ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) ⟧
---}
 
 
+
+  

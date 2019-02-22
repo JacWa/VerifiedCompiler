@@ -4,6 +4,8 @@ module Misc.Base where
   open import Agda.Builtin.Int renaming (Int to ℤ)
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Equality
+
+
   open import Relation.Binary
   open import Data.Nat.Base using (_≤_)
   open import Proofs.NatProofs
@@ -15,10 +17,15 @@ module Misc.Base where
   is (suc y) ≤ 0       = false
   is (suc y) ≤ (suc x) = is y ≤ x
 
-  {--infixr 20 _×_ _ω_
-  data _ω_ {A B : Set} : Set → Set → Set where
-    _×_ : (a : A)(b : B) → A ω B
---}
+  data _×_ (A B : Set) : Set where
+    _,_ : (a : A)(b : B) → A × B
+
+  fst : ∀ {A B} → (A × B) → A
+  fst (x , _) = x
+
+  snd : ∀ {A B} → A × B → B
+  snd (_ , y) = y
+
   ≤trans : ∀ {x y z} → x ≤ y → y ≤ z → x ≤ z
   ≤trans {0} _ _ = _≤_.z≤n
   ≤trans {suc a} (_≤_.s≤s p) (_≤_.s≤s q) = _≤_.s≤s (≤trans p q)

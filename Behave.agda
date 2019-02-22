@@ -6,8 +6,6 @@ module Behave where
   open import Data.String.Base using (String; primStringEquality)
   open import Base.DataStructures
   open import Agda.Builtin.Bool
-  open import Data.Colist renaming (_∷_ to _ph_)
-  open import Coinduction
   open import Relation.Binary
 
 
@@ -26,18 +24,7 @@ module Behave where
 
   data List (A : Set) : Set where
     [] : List A
-    _::_ : (a : A) → List A → List A
-{--
-  ex : Colist Bhvr × State → State
-  ex ([] , s) = s
-  ex ((x ph xs) , s) with x
-  ... | RD _ = ex (♭ xs , s)
---}
-
-  data ∞? (A : Set) : Set where
-    fin : List A → ∞? A
-    inf : Colist A → ∞? A
-  
+    _::_ : (a : A) → List A → List A  
 
   LW : String → List Bhvr → ℕ
   LW x [] = 0
@@ -56,27 +43,12 @@ module Behave where
   EVA (x + y) t = EVA x t ℕ+ EVA y t
 
   EVB : BExp → List Bhvr → Bool
-  EVB = λ _ _ → false
-{--
-  tl : {A : Set} → Colist A → Colist A
-  tl [] = []
-  tl (x ph xs) = ♭ xs
---}
-
+  EVB = {!!}
+  
   infixr 21 _⊹⊹_ 
   _⊹⊹_ : ∀ {A} → List A → List A → List A
   []        ⊹⊹ Q = Q
   (x :: xs) ⊹⊹ Q = x :: (xs ⊹⊹ Q)
-
-  f2i : ∀ {A} → List A → Colist A
-  f2i [] = []
-  f2i (x :: xs) = x ph ♯ (f2i xs)
-
-  _⊕_ : ∀ {A : Set} → ∞? A → ∞? A → ∞? A
-  (fin x) ⊕ (fin y) = fin (x ⊹⊹ y)
-  (inf x) ⊕ (inf y) = inf (x ++ y)
-  (inf x) ⊕ (fin y) = inf (x ++ (f2i y))
-  (fin x) ⊕ (inf y) = inf ((f2i x) ++ y)
   
 
   tracesA : AExp → List Bhvr → List Bhvr
@@ -85,21 +57,23 @@ module Behave where
   tracesA (a + b) t = tracesA b t ⊹⊹ tracesA a t
 
   tracesB : BExp → List Bhvr → List Bhvr
-  tracesB (BOOL _)  t = []
+  tracesB (BOOL _)  _ = []
   tracesB (NOT b)   t = tracesB b t
-  tracesB (x AND y) t = tracesB x t ⊹⊹ tracesB y t
+  tracesB (x AND y) t = tracesB y t ⊹⊹ tracesB x t
   tracesB (a LT b)  t = tracesA b t ⊹⊹ tracesA a t
 
-  traces : IExp → ∞? Bhvr → ∞? Bhvr
-  traces _ (inf t) = inf []
-  traces SKIP t = t
-  traces (x ≔ n) (fin t) = fin (WRT x (EVA n t) :: tracesA n t)
-  traces (P ⋯ Q) t with traces P t
-  ... | tₚ = traces Q tₚ ⊕ tₚ
-  traces (IF b THEN P ELSE Q) (fin t) with EVB b t
-  ... | true = traces P (fin t)
-  ... | false = traces Q (fin t)
-  traces (WHILE b DO c) t = {!!}
+  traces : (fuel : ℕ) → IExp → List Bhvr → List Bhvr
+  traces 0 _ t = t
+  traces _ SKIP t = t
+  traces _ (x ≔ n) t = WRT x (EVA n t) :: tracesA n t ⊹⊹ t
+  traces (suc f) (P ⋯ Q) t with traces f P t
+  ... | tₚ = (traces f Q tₚ) ⊹⊹ tₚ
+  traces (suc f) (IF b THEN P ELSE Q) t with EVB b t
+  ... | true = traces f P t -------------BBBBB
+  ... | false = traces f Q t -----------BBB
+  traces (suc f) (WHILE b DO c) t with EVB b t
+  ... | true = {!!}
+  ... | false = {!!}
   
 
 {--  

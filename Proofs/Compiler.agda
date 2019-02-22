@@ -63,7 +63,7 @@ module Proofs.Compiler where
   ... | true | false = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
   ... | false | true = step {JMP offset :: []} (exec1 (JMP offset) refl {jmp}) 0r
 
-  whilefalsehelper : ∀ {bexp σ offset} → bexe bexp σ ≡ false → Δpc bexp σ false offset ≡ offset z+ size (bcomp bexp false offset)
+ {- whilefalsehelper : ∀ {bexp σ offset} → bexe bexp σ ≡ false → Δpc bexp σ false offset ≡ offset z+ size (bcomp bexp false offset)
   whilefalsehelper = {!!}
 
   sound : ∀ E {σ σ' s} → [ E , σ ]⇓ σ' → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (size (compile E))
@@ -75,7 +75,7 @@ module Proofs.Compiler where
   ... | IfTrue e p = {!!}-}
   sound (WHILE b DO C) {σ} S with S
   ... | WhileFalse e rewrite sym (whilefalsehelper {b} {σ} {size (compile C) z+ (pos 1)} e) = compexec (bsound b false (size (compile C) z+ (pos 1))) (refl) {!!}
-  ... | WhileTrue e c w = {!!}
+  ... | WhileTrue e c w = {!!}-}
 
 
 
@@ -83,27 +83,51 @@ module Proofs.Compiler where
 
 
 
-{-
+
 
   Fₐ : AExp → ℤ
   Fₐ = acomp ∘ size
 
-  F : IExp → ℤ
-  F SKIP  = pos 0
-  F (x ≔ n) = pos 1 z+ (Fₐ n)
-  F (SKIP ⋯ E) = pos 0
-  F (E ⋯ E') = F E
-  F (IF _ THEN _ ELSE _) = pos 0
-  F (WHILE _ DO _) = pos 0
+  Fb : BExp → State → ℤ → ℤ
+  Fb b σ offset with bexe b σ
+  ... | true = size (bcomp b false offset)
+  ... | false = size (bcomp b false offset) z+ offset
 
-  sssound : ∀ E {E' σ σ' s} → ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (F E)
+  F : IExp → State → ℤ
+  F SKIP _ = pos 0
+  F (x ≔ n) _ = pos 1 z+ (Fₐ n)
+  F (SKIP ⋯ E) _ = pos 0
+  F (E ⋯ E') σ = F E σ
+  F (IF b THEN P ELSE Q) σ = Fb b σ (size (compile P) z+ pos 1)
+  F (WHILE b DO P) σ = Fb b σ (size (compile P) z+ pos 1)
+
+  BSound : ∀ b p offset {σ s} → bexe b σ ≡ p → bcomp b false offset ⊢ config σ s (pos 0) ⇒* config σ s (Fb b σ offset)
+  BSound = {!!}
+
+  sssound : ∀ E {E' σ σ' s} → ⟦ σ , E ⟧↦⟦ σ' , E' ⟧ → compile E ⊢ config σ s (pos 0) ⇒* config σ' s (F E σ)
   sssound SKIP ()
   sssound (x ≔ a) assign rewrite suc≡+1 (size` (acomp a)) | zucpn-pn≡1 (size` (acomp a)) = compexec (asound a) refl (step (exec1 (STORE x ) refl {store}) (0r))
   sssound (SKIP ⋯ P) seqbase = 0r
-  sssound (P ⋯ Q) (seqstep p) = sssound P p
-  sssound (IF b THEN x ELSE y) (iftrue p) = 0r
-  sssound (IF b THEN x ELSE y) (iffalse p) = 0r
-  sssound (WHILE b DO c) while = 0r-}
+  sssound (P ⋯ Q) (seqstep p) with P
+  sssound (P ⋯ Q) (seqstep ()) | SKIP
+  ... | (x ≔ a) = stacklem1 (sssound (x ≔ a) p)
+  ... | (E ⋯ E') = stacklem1 (sssound (E ⋯ E') p)
+  ... | IF b THEN E ELSE E' = stacklem1 (sssound (IF b THEN E ELSE E') p)
+  ... | WHILE b DO c = stacklem1 (sssound (WHILE b DO c) p)
+  sssound (IF b THEN x ELSE y) (iftrue p) = stacklem1 (BSound b true (pos (size` (compile x) ℕ+ 1)) p)
+  sssound (IF b THEN x ELSE y) (iffalse p) = stacklem1 (BSound b false (pos (size` (compile x) ℕ+ 1)) p)
+  sssound (WHILE b DO c) (whilefalse p) with compile c
+  ... | body = stacklem1 (BSound b false (pos (size` body ℕ+ 1)) p)
+  sssound (WHILE b DO c) (whiletrue p) with compile c
+  ... | body = stacklem1 (BSound b true (pos (size` body ℕ+ 1)) p)
+
+
+
+
+
+
+
+--stacklem1 {bcomp {!!} {!!} {!!}} {(compile c) & (JMP {!!} :: [])} {config σ _ (pos zero)} {config _ _ (F (WHILE b DO c) σ)} {!!}
 
   
 
