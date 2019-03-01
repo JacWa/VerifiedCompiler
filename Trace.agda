@@ -1,3 +1,4 @@
+{-# OPTIONS --no-termination-check #-}
 module Trace where
   open import Base.DataStructures
   open import Misc.Base
@@ -52,18 +53,21 @@ module Trace where
   traceB (x AND y) t = traceB y (traceB x t)
   traceB (x LT y)  t = traceA y (traceA x t)
   
-  traceᴴᴸ : (fuel : ℕ) → IExp → List Bhvr → List Bhvr
-  traceᴴᴸ 0 _ t = t
-  traceᴴᴸ (suc n) SKIP t = t
-  traceᴴᴸ (suc n) (x ≔ a) t = (WRT x (EVA a t) ∷ []) ++ traceA a t
-  traceᴴᴸ (suc n) (P ⋯ Q) t = traceᴴᴸ n Q (traceᴴᴸ n P t)
-  traceᴴᴸ (suc n) (IF b THEN P ELSE Q) t with EVB b t
-  ... | true  = traceᴴᴸ n P (traceB b t)
-  ... | false = traceᴴᴸ n P (traceB b t)
-  traceᴴᴸ (suc n) (WHILE b DO c) t with EVB b t
-  ... | true  = traceᴴᴸ n c (traceB b t)
+  traceᴴᴸ' : (fuel : ℕ) → IExp → List Bhvr → List Bhvr
+  traceᴴᴸ' 0 _ t = t
+  traceᴴᴸ' (suc n) SKIP t = t
+  traceᴴᴸ' (suc n) (x ≔ a) t = (WRT x (EVA a t) ∷ []) ++ traceA a t
+  traceᴴᴸ' (suc n) (P ⋯ Q) t = traceᴴᴸ' (suc n) Q (traceᴴᴸ' (suc n) P t)
+  traceᴴᴸ' (suc n) (IF b THEN P ELSE Q) t with EVB b t
+  ... | true  = traceᴴᴸ' (suc n) P (traceB b t)
+  ... | false = traceᴴᴸ' (suc n) P (traceB b t)
+  traceᴴᴸ' (suc n) (WHILE b DO c) t with EVB b t
+  ... | true  = traceᴴᴸ' n (c ⋯ (WHILE b DO c)) (traceB b t)
   ... | false = traceB b t
 
+
+  traceᴴᴸ : (fuel : ℕ) → IExp → List Bhvr
+  traceᴴᴸ n P = traceᴴᴸ' n P []
 
   traceI : Inst → (Stack × List Bhvr) × ℤ → (Stack × List Bhvr) × ℤ
   traceI (LOADI x)   ((s , t) , pc) = ((x , s) , t) , (pc z+ pos 1)
@@ -72,8 +76,12 @@ module Trace where
   traceI ADD         (((head , next , rest) , t) , pc) = (((head ℕ+ next) , rest) , t) , (pc z+ pos 1)
   traceI (STORE x)   (((head , rest) , t) , pc)        = (rest , (WRT x head ∷ t)) , (pc z+ pos 1)
   traceI (JMP x)     (s,t , pc) = s,t , ( pc z+ x z+ pos 1)
-  --traceI (JMPLESS x) 
-  --traceI (JMPGE x)
+  traceI (JMPLESS x) (((head , next , rest) , t) , pc) with is head ≤ next
+  ... | true  = (rest , t) , (pc z+ pos 1)
+  ... | false = (rest , t) , (pc z+ x z+ pos 1) 
+  traceI (JMPGE x) (((head , next , rest) , t) , pc) with is head ≤ next
+  ... | true  = (rest , t) , (pc z+ x z+ pos 1)
+  ... | false = (rest , t) , (pc z+ pos 1)
 {- may need a more sophisticated way to deal with these cases, rather than just doing nothing
    these should never occur, due to the way programs are compiled.
    ↑ maybe I need a proof for that? ↑
@@ -83,6 +91,7 @@ module Trace where
   traceI (JMPLESS _) t = t
   traceI (JMPGE _) t = t
   
+  
 
   traceᴸᴸ' : (fuel : ℕ) → Prog → (PC : ℤ) → Stack × List Bhvr → Stack × List Bhvr
   traceᴸᴸ' 0 _ _ s,t = s,t
@@ -91,8 +100,9 @@ module Trace where
   ... | false with P ፦ PC
   ... | nothing = s,t -- maybe create proof with iz so that this case is not possible
   ... | just i with traceI i (s,t , PC)
-  ... | s,t' , PC' = traceᴸᴸ' n P PC' (s,t')
-  
+  ... | s,t' , PC' with iz PC' ≤ PC
+  ... | true = traceᴸᴸ' n P PC' (s,t')
+  ... | false = traceᴸᴸ' (suc n) P PC' (s,t')
 
   traceᴸᴸ :  (fuel : ℕ) → Prog → List Bhvr
   traceᴸᴸ n p = snd (traceᴸᴸ' n p (pos 0) ($ , []))
