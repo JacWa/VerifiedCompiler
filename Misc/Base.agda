@@ -17,15 +17,6 @@ module Misc.Base where
   is (suc y) ≤ 0       = false
   is (suc y) ≤ (suc x) = is y ≤ x
 
-  data _×_ (A B : Set) : Set where
-    _,_ : (a : A)(b : B) → A × B
-
-  fst : ∀ {A B} → (A × B) → A
-  fst (x , _) = x
-
-  snd : ∀ {A B} → A × B → B
-  snd (_ , y) = y
-
   ≤trans : ∀ {x y z} → x ≤ y → y ≤ z → x ≤ z
   ≤trans {0} _ _ = _≤_.z≤n
   ≤trans {suc a} (_≤_.s≤s p) (_≤_.s≤s q) = _≤_.s≤s (≤trans p q)
@@ -70,6 +61,9 @@ module Misc.Base where
   x z- (pos 0)       = x
   x z- (pos (suc y)) = x z+ (negsuc y)
   x z- (negsuc y)    = x z+ (pos (suc y))
+
+  _∘_ : {A B C : Set} → (A → B) → (B → C) → (A → C)
+  (f ∘ g) x = g (f x) 
 
   zuc : ℤ → ℤ
   zuc (negsuc 0)       = pos 0
