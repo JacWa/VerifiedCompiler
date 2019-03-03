@@ -54,13 +54,13 @@ module Trace where
   traceB (x LT y)  t = traceA y (traceA x t)
   
   traceᴴᴸ' : (fuel : ℕ) → IExp → List Bhvr → List Bhvr
-  traceᴴᴸ' 0 _ t = t
-  traceᴴᴸ' (suc n) SKIP t = t
-  traceᴴᴸ' (suc n) (x ≔ a) t = (WRT x (EVA a t) ∷ []) ++ traceA a t
-  traceᴴᴸ' (suc n) (P ⋯ Q) t = traceᴴᴸ' (suc n) Q (traceᴴᴸ' (suc n) P t)
-  traceᴴᴸ' (suc n) (IF b THEN P ELSE Q) t with EVB b t
-  ... | true  = traceᴴᴸ' (suc n) P (traceB b t)
-  ... | false = traceᴴᴸ' (suc n) P (traceB b t)
+  traceᴴᴸ' n SKIP t = t
+  traceᴴᴸ' n (x ≔ a) t = (WRT x (EVA a t) ∷ []) ++ traceA a t
+  traceᴴᴸ' n (P ⋯ Q) t = traceᴴᴸ' n Q (traceᴴᴸ' n P t)
+  traceᴴᴸ' n (IF b THEN P ELSE Q) t with EVB b t
+  ... | true  = traceᴴᴸ' n P (traceB b t)
+  ... | false = traceᴴᴸ' n Q (traceB b t)
+  traceᴴᴸ' 0 (WHILE b DO c) t = t
   traceᴴᴸ' (suc n) (WHILE b DO c) t with EVB b t
   ... | true  = traceᴴᴸ' n (c ⋯ (WHILE b DO c)) (traceB b t)
   ... | false = traceB b t

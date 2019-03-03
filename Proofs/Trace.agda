@@ -13,6 +13,7 @@ module Proofs.Trace where
   open import Data.String
   open import Data.Nat.Base renaming (_+_ to _ℕ+_)
   open import Data.List
+  open import Data.Maybe
 
   open import Proofs.NatProofs
 
@@ -34,8 +35,11 @@ module Proofs.Trace where
   --- Proof of equality for traces over boolean expression compilation ---
   ---------------------------------------------------------------------------
 
-  btransEQ : ∀ b t f offset → traceB b t ≡ snd (traceᴸᴸ' f (bcomp b false offset) (pos 0) ($ , t))
-  btransEQ (BOOL b) t 0 offset = refl
+  btransEQ : ∀ b f {offset} → traceB b [] ≡ snd (traceᴸᴸ' f (bcomp b false offset) (pos 0) ($ , []))
+  btransEQ (BOOL b) 0 = refl
+  btransEQ (BOOL true) (suc n) = refl
+  btransEQ (BOOL false) (suc n) = refl
+  
  -- btransEQ (BOOL b) t f o with false Data.Bool.≟ b
  -- ... | yes p = {!!}
  -- ... | no _  with traceᴸᴸ' f [] (pos 0) ($ , t)
@@ -77,7 +81,8 @@ module Proofs.Trace where
   helper-a : ∀ P Q fuel s,t →  traceᴸᴸ' fuel (P & Q) (pos 0) (s,t) ≡ traceᴸᴸ' fuel (P & Q) (size P) (traceᴸᴸ' fuel P (pos 0) (s,t))
   helper-a _ _ 0 _  = refl
   helper-a [] _ (suc f) _  = refl
-  helper-a (p :: ps) Q (suc f) s,t rewrite helper-a ps Q= {!helper-a!}
+  helper-a (p :: ps) Q (suc f) s,t with traceᴸᴸ' (suc f) (p :: ps) (pos 0) s,t
+  ... | s , t = {!!}
 
   transEQ-helper-whiletrue : ∀ {f b c} → traceᴴᴸ' f (c ⋯ (WHILE b DO c)) (traceB b []) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
   transEQ-helper-whiletrue {suc f} {b} {c} =
@@ -89,7 +94,7 @@ module Proofs.Trace where
     (suc f)
     (suc (suc f))
     (suc f)
-    (btransEQ b [] (suc (suc f)) (pos (size` (compile c) ℕ+ 1)))
+    {!!} --(btransEQ b [] (suc (suc f)) (pos (size` (compile c) ℕ+ 1)))
     (transEQ-helper-whiletrue-b f b c)
 
   transEQ : ∀ P {f} → traceᴴᴸ f P ≡ traceᴸᴸ f (compile P)
@@ -100,7 +105,7 @@ module Proofs.Trace where
   transEQ (WHILE b DO c) {suc f} with inspect (EVB b [])
   ... | false with≡ prf rewrite transEQ-helper-2 b (suc f) c prf with inspect (is size` (bcomp b false (pos (size` (compile c) ℕ+ 1))) ≤ 0)
   ... | true with≡ prf2 rewrite transEQ-helper-3 b c (suc f) prf2 | prf2 = refl
-  ... | false with≡ prf2 rewrite prf = btransEQ b [] (suc f) (pos (size` (compile c) ℕ+ 1))
+  ... | false with≡ prf2 rewrite prf = btransEQ b (suc f)
  -- ... | true  = {!!}
   transEQ (WHILE b DO c) {suc f} | true with≡ prf rewrite prf = transEQ-helper-whiletrue {f}
 

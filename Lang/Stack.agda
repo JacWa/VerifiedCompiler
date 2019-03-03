@@ -179,6 +179,7 @@ module Lang.Stack where
   (i :: is) ፦ (pos (suc n)) = is ፦ (pos n)
 
 
+
   
 
   {-- step : (p : Prog)(c : Config){vpc : Lem2 (pc c) p}{vh : Lem1 (inst p (pc c) {vpc}) (height (stack c))} → Config
