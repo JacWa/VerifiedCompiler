@@ -63,9 +63,9 @@ module Proofs.Stack where
 
   data _×_⇒*_ : Prog → Config → Config → Set where
 
-    none : ∀ {p σ s pc}-- pc'} →                       pc ≡ pc'
-                               --------------------------------------------
-                                → p × (config σ s pc) ⇒* (config σ s pc)
+    none : ∀ {p c} →
+                     -----------------
+                       p × c ⇒* c
 
 
     some : ∀ {p c c' c''} →   p × c ⇒ c' → p × c' ⇒* c'' →
