@@ -27,8 +27,8 @@ module Proofs.NatProofs where
 
     +comm : (n m : ℕ) → (n + m) ≡ (m + n)
     +comm 0 m rewrite +0 m = refl
-    +comm (suc n) m with (n + m) | +comm n m
-    ... | .(m + n) | refl = +swap {m} {n}
+    +comm (suc n) m rewrite +comm n m = +swap {m} {n} -- with (n + m) | +comm n m
+--    ... | .(m + n) | refl = +swap {m} {n}
 
     +assoc : (x y z : ℕ) → (x + (y + z)) ≡ ((x + y) + z)
     +assoc 0 y z = refl

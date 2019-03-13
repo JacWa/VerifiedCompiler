@@ -10,6 +10,7 @@ module Trace where
   open import Data.Nat.Base renaming (_+_ to _ℕ+_)
   open import Data.List
   open import Data.Maybe
+  open import Compiler
 
   data Bhvr : Set where
     RD : String → ℕ → Bhvr
@@ -53,21 +54,21 @@ module Trace where
   traceB (x AND y) t = traceB y (traceB x t)
   traceB (x LT y)  t = traceA y (traceA x t)
   
-  traceᴴᴸ' : (fuel : ℕ) → IExp → List Bhvr → List Bhvr
-  traceᴴᴸ' n SKIP t = t
-  traceᴴᴸ' n (x ≔ a) t = (WRT x (EVA a t) ∷ []) ++ traceA a t
-  traceᴴᴸ' n (P ⋯ Q) t = traceᴴᴸ' n Q (traceᴴᴸ' n P t)
-  traceᴴᴸ' n (IF b THEN P ELSE Q) t with EVB b t
-  ... | true  = traceᴴᴸ' n P (traceB b t)
-  ... | false = traceᴴᴸ' n Q (traceB b t)
-  traceᴴᴸ' 0 (WHILE b DO c) t = t
-  traceᴴᴸ' (suc n) (WHILE b DO c) t with EVB b t
-  ... | true  = traceᴴᴸ' n (c ⋯ (WHILE b DO c)) (traceB b t)
-  ... | false = traceB b t
+  traceᴴᴸ' :  IExp → List Bhvr × ℕ → List Bhvr × ℕ
+  traceᴴᴸ' _ (t , 0) = (t , 0)
+  traceᴴᴸ' SKIP (t , (suc n)) = t , n
+  traceᴴᴸ' (x ≔ a) (t , (suc n)) = ((WRT x (EVA a t) ∷ []) ++ traceA a t) , n
+  traceᴴᴸ' (P ⋯ Q) (t , suc n) = traceᴴᴸ' Q (traceᴴᴸ' P (t , n))
+  traceᴴᴸ' (IF b THEN P ELSE Q) (t , suc n) with EVB b t
+  ... | true  = traceᴴᴸ' P ((traceB b t) , n)
+  ... | false = traceᴴᴸ' Q ((traceB b t) , n)
+  traceᴴᴸ' (WHILE b DO c) (t , suc n) with EVB b t
+  ... | true  = traceᴴᴸ' (c ⋯ (WHILE b DO c)) ((traceB b t) , n)
+  ... | false = traceB b t , n
 
 
   traceᴴᴸ : (fuel : ℕ) → IExp → List Bhvr
-  traceᴴᴸ n P = traceᴴᴸ' n P []
+  traceᴴᴸ n P = fst (traceᴴᴸ' P ([] , n))
 
   traceI : Inst → (Stack × List Bhvr) × ℤ → (Stack × List Bhvr) × ℤ
   traceI (LOADI x)   ((s , t) , pc) = ((x , s) , t) , (pc z+ pos 1)
@@ -106,3 +107,16 @@ module Trace where
 
   traceᴸᴸ :  (fuel : ℕ) → Prog → List Bhvr
   traceᴸᴸ n p = snd (traceᴸᴸ' n p (pos 0) ($ , []))
+
+
+  fuelᴴᴸ²ᴸᴸ' : IExp → ℕ × List Bhvr → ℕ × List Bhvr
+  fuelᴴᴸ²ᴸᴸ' SKIP f,b = f,b
+  fuelᴴᴸ²ᴸᴸ' (x ≔ a) (fuel , b) = (fuel ℕ+ (size` (acomp a))) , b
+  fuelᴴᴸ²ᴸᴸ' (x ⋯ x₁) f,b = fuelᴴᴸ²ᴸᴸ' x₁ (fuelᴴᴸ²ᴸᴸ' x f,b)
+  fuelᴴᴸ²ᴸᴸ' (IF bl THEN x ELSE y) (fuel , b) with EVB bl b
+  ... | true  = fuelᴴᴸ²ᴸᴸ' x ((fuel ℕ+ size` (bcomp bl false (size (compile x) z+ (pos 1)))) , b)
+  ... | false = fuelᴴᴸ²ᴸᴸ' y ((fuel ℕ+ size` (bcomp bl false (size (compile x) z+ (pos 1)))) , b)
+  fuelᴴᴸ²ᴸᴸ' (WHILE bl DO c) (fuel , b) with EVB bl b
+  ... | true = fuelᴴᴸ²ᴸᴸ' c ((fuel ℕ+ 1 ℕ+ size` (bcomp bl false (size (compile c) z+ pos 1))) , b)
+  ... | false = (fuel ℕ+ size` (bcomp bl false (size (compile c) z+ pos 1))) , b
+

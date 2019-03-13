@@ -38,7 +38,7 @@ module Proofs.Trace where
   btransEQ : ∀ b f {offset} → traceB b [] ≡ snd (traceᴸᴸ' f (bcomp b false offset) (pos 0) ($ , []))
   btransEQ (BOOL b) 0 = refl
   btransEQ (BOOL true) (suc n) = refl
-  btransEQ (BOOL false) (suc n) = refl
+  btransEQ (BOOL false) (suc n) = {!!}
   
  -- btransEQ (BOOL b) t f o with false Data.Bool.≟ b
  -- ... | yes p = {!!}
@@ -70,12 +70,12 @@ module Proofs.Trace where
   transEQ-helper-3 : ∀ b c f → is size` (bcomp b false (pos (size` (compile c) ℕ+ 1))) ≤ 0 ≡ true → traceᴴᴸ f (WHILE b DO c) ≡ []
   transEQ-helper-3 = {!!}
 
-  transEQ-helper-whiletrue-a : ∀ I P Q t f f' f'' → t ≡ snd (traceᴸᴸ' f' P (pos 0) ($ , [])) → traceᴴᴸ' f I [] ≡ snd (traceᴸᴸ' f'' (P & Q) (size P) ($ , [])) → traceᴴᴸ' f I t ≡ snd (traceᴸᴸ' f' (P & Q) (pos 0) ($ , []))
-  transEQ-helper-whiletrue-a = {!!}
+--  transEQ-helper-whiletrue-a : ∀ I P Q t f f' f'' → t ≡ snd (traceᴸᴸ' f' P (pos 0) ($ , [])) → traceᴴᴸ' f I [] ≡ snd (traceᴸᴸ' f'' (P & Q) (size P) ($ , [])) → traceᴴᴸ' f I t ≡ snd (traceᴸᴸ' f' (P & Q) (pos 0) ($ , []))
+--  transEQ-helper-whiletrue-a = {!!}
 
 
-  transEQ-helper-whiletrue-b : ∀ f b c → traceᴴᴸ' (suc f) (c ⋯ (WHILE b DO c)) [] ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (size (bcomp b false (pos (size` (compile c) ℕ+ 1)))) ($ , []))
-  transEQ-helper-whiletrue-b = {!!}
+ -- transEQ-helper-whiletrue-b : ∀ f b c → traceᴴᴸ' (suc f) (c ⋯ (WHILE b DO c)) [] ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (size (bcomp b false (pos (size` (compile c) ℕ+ 1)))) ($ , []))
+ -- transEQ-helper-whiletrue-b = {!!}
 
 
   helper-a : ∀ P Q fuel s,t →  traceᴸᴸ' fuel (P & Q) (pos 0) (s,t) ≡ traceᴸᴸ' fuel (P & Q) (size P) (traceᴸᴸ' fuel P (pos 0) (s,t))
@@ -84,7 +84,7 @@ module Proofs.Trace where
   helper-a (p :: ps) Q (suc f) s,t with traceᴸᴸ' (suc f) (p :: ps) (pos 0) s,t
   ... | s , t = {!!}
 
-  transEQ-helper-whiletrue : ∀ {f b c} → traceᴴᴸ' f (c ⋯ (WHILE b DO c)) (traceB b []) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
+{--  transEQ-helper-whiletrue : ∀ {f b c} → traceᴴᴸ' f (c ⋯ (WHILE b DO c)) (traceB b []) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
   transEQ-helper-whiletrue {suc f} {b} {c} =
     transEQ-helper-whiletrue-a
     (c ⋯ (WHILE b DO c))
@@ -96,9 +96,13 @@ module Proofs.Trace where
     (suc f)
     {!!} --(btransEQ b [] (suc (suc f)) (pos (size` (compile c) ℕ+ 1)))
     (transEQ-helper-whiletrue-b f b c)
+--}
+
+  whiletrue-helper-1 : ∀ f b c → fst (traceᴴᴸ' (WHILE b DO c) ([] , suc f)) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
+  whiletrue-helper-1 = ?
 
   transEQ : ∀ P {f} → traceᴴᴸ f P ≡ traceᴸᴸ f (compile P)
-  transEQ _ {0} = refl
+  transEQ _ {0} = {!!} --refl
   transEQ SKIP {suc f} = refl
   --transEQ (x ≔ a) {suc f} with EVA a [] | traceA a []
   --... | n | t rewrite transEQ-helper-1 (acomp a) {STORE x :: []} refl = {!!}
@@ -107,7 +111,7 @@ module Proofs.Trace where
   ... | true with≡ prf2 rewrite transEQ-helper-3 b c (suc f) prf2 | prf2 = refl
   ... | false with≡ prf2 rewrite prf = btransEQ b (suc f)
  -- ... | true  = {!!}
-  transEQ (WHILE b DO c) {suc f} | true with≡ prf rewrite prf = transEQ-helper-whiletrue {f}
+  transEQ (WHILE b DO c) {suc f} | true with≡ prf = {!!}
 
 
 
