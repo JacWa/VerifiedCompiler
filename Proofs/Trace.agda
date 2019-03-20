@@ -99,7 +99,7 @@ module Proofs.Trace where
 --}
 
   whiletrue-helper-1 : ∀ f b c → fst (traceᴴᴸ' (WHILE b DO c) ([] , suc f)) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
-  whiletrue-helper-1 = ?
+  whiletrue-helper-1 = {!!}
 
   transEQ : ∀ P {f} → traceᴴᴸ f P ≡ traceᴸᴸ f (compile P)
   transEQ _ {0} = {!!} --refl

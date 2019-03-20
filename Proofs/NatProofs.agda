@@ -21,7 +21,7 @@ module Proofs.NatProofs where
     +swap {suc a} {b} with (a + suc b) | (+swap {a} {b})
     ... | .(suc (a + b)) | refl = refl
 
-    +0 : (a : ℕ) → (a + 0) ≡ a
+    +0 : ∀ (a : ℕ) → (a + 0) ≡ a
     +0 0 = refl
     +0 (suc a) rewrite +0 a = refl
 
