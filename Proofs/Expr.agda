@@ -42,7 +42,7 @@ module Proofs.Expr where
   -- Big step semantics.
   data [_,_]⇓_ : IExp → State → State → Set where
   
-    Skip       : ∀ {s} →
+    Skip       : ∀ {s} →    
                            -----------------
                             [ SKIP , s ]⇓ s
 
@@ -75,6 +75,8 @@ module Proofs.Expr where
     WhileTrue  : ∀ {s s' s'' bool this} →    (bexe bool s) ≡ true → [ this , s ]⇓ s' → [ (WHILE bool DO this) , s' ]⇓ s'' →
                                              ----------------------------------------------------------------------------------
                                                                      [ (WHILE bool DO this) , s ]⇓ s''
+
+
 
   -- Small step semantics.
   data ⟦_,_⟧↦⟦_,_⟧ : State → IExp → State → IExp → Set where
