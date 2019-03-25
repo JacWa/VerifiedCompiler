@@ -171,6 +171,7 @@ module Lang.Stack where
   inst []        (pos n)       _ (+≤+ ())
   inst _ (negsuc _) ()
 
+  
 
   _፦_ : Prog → ℤ → Maybe Inst  
   []        ፦ _             = nothing

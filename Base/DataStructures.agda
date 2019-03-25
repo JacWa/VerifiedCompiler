@@ -8,6 +8,7 @@ module Base.DataStructures where
   open import Data.String.Base
   open import Data.Bool
   open import Misc.Base
+  open import Level hiding (suc)
 
 -------------------------
 -- Variable Definition --
@@ -36,7 +37,7 @@ module Base.DataStructures where
 -- Stack Definition --
 ----------------------
 
-  infixr 20 _,_
+  infixr 10 _,_
   data Stack : Set where
     $   : Stack
     _,_ : ℕ → Stack → Stack
@@ -64,4 +65,6 @@ module Base.DataStructures where
 
 ---
 
- 
+  infixr 10 _×_
+  data _×_ {a} (A B : Set a) : Set a where
+    _,_ : (a : A)(b : B) → A × B
