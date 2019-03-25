@@ -1,7 +1,7 @@
 module Proofs.Compiler where
 
   open import Compiler
-  open import Lang.Stack
+  open import Lang.Stack renaming (JMPLESS to JMPLT)
   open import Lang.Expr
   open import Proofs.Basic
   open import Proofs.NatProofs
@@ -54,8 +54,18 @@ module Proofs.Compiler where
   storeᴸᴸ' (stateᴸᴸ p (config σ stk pc) (suc f)) with p ፦ pc
   ... | nothing = (stateᴸᴸ p (config σ stk pc) (suc f))
   ... | just i with i
-  ... | LOADI n = {!!}
-
+  ... | LOADI n = stateᴸᴸ p (config σ (n , stk) (pc z+ pos 1)) f
+  ... | LOAD  x = stateᴸᴸ p (config σ (get-var x σ , stk) (pc z+ pos 1)) f
+  ... | ADD     = stateᴸᴸ p (config σ ((hd stk ℕ+ hd (tl stk)) , tl (tl stk)) ((pc z+ pos 1))) f
+  ... | STORE x = stateᴸᴸ p (config ((x ≔ (hd stk)) ∷ σ) (tl stk) ((pc z+ pos 1))) f
+  ... | JMP x   = stateᴸᴸ p (config σ stk (pc z+ pos 1 z+ x)) f
+  ... | JMPLT x with is hd stk ≤ hd (tl stk)
+  ... | true  = stateᴸᴸ p (config σ (tl (tl stk)) (pc z+ pos 1)) f
+  ... | false = stateᴸᴸ p (config σ (tl (tl stk)) (pc z+ pos 1 z+ x)) f
+  storeᴸᴸ' (stateᴸᴸ p (config σ stk pc) (suc f)) | just i | JMPGE x with is hd stk ≤ hd (tl stk)
+  ... | true  = stateᴸᴸ p (config σ (tl (tl stk)) (pc z+ pos 1 z+ x)) f
+  ... | false = stateᴸᴸ p (config σ (tl (tl stk)) (pc z+ pos 1)) f
+  
   storeᴸᴸ : Prog → (fuel : ℕ) → Store
   storeᴸᴸ [] f = ⟦⟧
   storeᴸᴸ (i :: is) f with storeᴸᴸ' (stateᴸᴸ (i :: is) (config ⟦⟧ $ (pos 0)) f)
@@ -83,4 +93,5 @@ module Proofs.Compiler where
   ... | [] = refl
   ... | (i :: is) = refl
   Lemma0 SKIP (suc f) = refl
+  Lemma0 (x ≔ a) (suc f) = {!!}
 

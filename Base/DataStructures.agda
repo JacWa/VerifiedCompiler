@@ -46,6 +46,14 @@ module Base.DataStructures where
   height $       = 0
   height (h , t) = suc (height t)
 
+  hd : Stack → ℕ
+  hd $ = 0
+  hd (n , _) = n
+
+  tl : Stack → Stack
+  tl $ = $
+  tl (_ , t) = t
+
 -----------------------
 -- Config Definition --
 -----------------------
