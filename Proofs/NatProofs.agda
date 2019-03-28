@@ -16,7 +16,7 @@ module Proofs.NatProofs where
     *1 0 = refl
     *1 (suc x) rewrite *1 x = refl
 
-    +swap : {a b : ℕ} → (suc (a + b) ≡ (a + suc b)) 
+    +swap : {a b : ℕ} → suc (a + b) ≡ (a + suc b)
     +swap {0} {b} = refl
     +swap {suc a} {b} with (a + suc b) | (+swap {a} {b})
     ... | .(suc (a + b)) | refl = refl
@@ -29,6 +29,11 @@ module Proofs.NatProofs where
     +comm 0 m rewrite +0 m = refl
     +comm (suc n) m with (n + m) | +comm n m
     ... | .(m + n) | refl = +swap {m} {n}
+    
+    sucswap : ∀ a b → a + suc b ≡ b + suc a
+    sucswap 0 b rewrite +comm b 1 = refl
+    sucswap (suc a) b rewrite +comm b (suc (suc a)) | +comm a (suc b) | +comm a b = refl
+
 
     +assoc : (x y z : ℕ) → (x + (y + z)) ≡ ((x + y) + z)
     +assoc 0 y z = refl

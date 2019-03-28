@@ -160,6 +160,10 @@ module Lang.Stack where
   size`&3= : ∀ p q r → size` (p & q & r) ≡ size` p ℕ+ (size` q ℕ+ size` r)
   size`&3= p q r rewrite sym (size`&= q r) | sym (size`&= p (q & r)) = refl
 
+  &assoc : ∀ P Q R → (P & Q) & R ≡ P & Q & R
+  &assoc [] Q R = refl
+  &assoc (i :: is) Q R rewrite &assoc is Q R = refl
+
 ----------
   
   data Lem2 : ℤ → Prog → Set where
