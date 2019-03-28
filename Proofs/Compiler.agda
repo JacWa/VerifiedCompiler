@@ -88,38 +88,35 @@ module Proofs.Compiler where
   fᴴᴸ2ᴸᴸ I fᴴᴸ with fᴴᴸ2ᴸᴸ' I (fᴴᴸ , 0 , ⟦⟧)
   ... | fᴴᴸ' , fᴸᴸ , _ = fᴴᴸ' ℕ+ fᴸᴸ
 
-{-  ≔Lemma1 : ∀ {n} → size` (acomp (NAT n)) ≡ 1
-  ≔Lemma1 = refl-}
-{-
-  ≔Lemma1+ : ∀ x a b n {f} → aexe (a + b) ⟦⟧ ≡ n → (x ≔ n) ∷ ⟦⟧ ≡ storeᴸᴸ ((acomp a & acomp b & (ADD :: [])) & STORE x :: []) (suc (size` (acomp (a + b)) ℕ+ f))
-  ≔Lemma1+ x a b n = {!!}
+-------------------------
+-- Intermediary Proofs --
+-------------------------
 
-  ≔Lemma1 : ∀ x a n {f} → aexe a ⟦⟧ ≡ n → (x ≔ n) ∷ ⟦⟧ ≡ storeᴸᴸ (acomp a & STORE x :: []) (suc (size` (acomp a) ℕ+ f))
-  ≔Lemma1 x (NAT n) n {0} refl = refl
-  ≔Lemma1 x (NAT n) n {suc f} refl = refl
-  ≔Lemma1 x (VAR y) n {0} refl = refl
-  ≔Lemma1 x (VAR y) n {suc f} refl = refl
-  ≔Lemma1 x (a + b) n {f} = ≔Lemma1+ x a b n
+  σnothing : ∀ {σ σ' stk f} → storeᴸᴸ' (stateᴸᴸ [] (config σ stk (pos 0)) f) ≡ storeᴸᴸ' (stateᴸᴸ [] (config σ' stk (pos 0)) f) → σ ≡ σ'
+  σnothing {σ} {σ'} {stk}  nope = {!!}
+
+  AddRightᴸᴸ : ∀ P Q {σ stk σ' stk'} f → storeᴸᴸ' (stateᴸᴸ P (config σ stk (pos 0)) (size` P ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ P (config σ' stk' (size P)) f) → storeᴸᴸ' (stateᴸᴸ (P & Q) (config σ stk (pos 0)) (size` P ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (P & Q) (config σ' stk' (size P)) f)
+  AddRightᴸᴸ P [] f pexec rewrite &[] {P} = pexec
+  AddRightᴸᴸ [] (i :: Q) f pexec rewrite +comm 1 1  = {!!}
+
+
+{-
+{-
+  Lemma2 : ∀ P Q {σ stk σ' stk'} f → storeᴸᴸ' (stateᴸᴸ Q (config σ stk (pos 0)) (size` Q ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ Q (config σ' stk' (size  Q)) f) → storeᴸᴸ' (stateᴸᴸ (P & Q) (config σ stk (size P)) (size` Q ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (P & Q) (config σ' stk' (size (P & Q))) f)
+  Lemma2 = {!!}
 -}
 
-  --Lemma1 : storeLL (P & Q) ((size` P) ℕ+ f) ≡ storeLL' (stateLL (P & Q) (config ⟦⟧ $ (size P)) f)
-{-
-  ≔Lemma1 : ∀ a rest f σ stk → storeᴸᴸ' (stateᴸᴸ (acomp a & rest) (config σ stk (pos 0)) (suc (size` (acomp a) ℕ+ f))) ≡ storeᴸᴸ' (stateᴸᴸ (acomp a & rest) (config σ ((aexe a σ) , stk) (size (acomp a))) (suc f))
-  ≔Lemma1 = {!!}
+  Lemma3 : ∀ i P {σ stk σ' stk'} f → storeᴸᴸ' (stateᴸᴸ P (config σ stk (pos 0)) (size` P ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ P (config σ' stk' (size P)) f) → storeᴸᴸ' (stateᴸᴸ (i :: P) (config σ stk (pos 1)) (size` P ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (i :: P) (config σ' stk' (pos 1 z+ size P)) f)
+  Lemma3 = {!!}
 
-  ≔Lemma0 : ∀ x a f → ((x ≔ aexe a ⟦⟧) ∷ ⟦⟧) ≡ storeᴸᴸ (acomp a & STORE x :: []) (suc (size` (acomp a) ℕ+ f))
-  ≔Lemma0 x a f with a
-  ... | NAT n with f
-  ... | 0 = refl
-  ... | (suc f') = refl
-  ≔Lemma0 x a f | VAR y with f
-  ... | 0 = refl
-  ... | (suc f') = refl
-  ≔Lemma0 x a f | (m + n) rewrite &assoc (acomp m) (acomp n & (ADD :: [])) (STORE x :: []) | size`&= (acomp m) (acomp n & ADD :: []) | sym (+assoc (size` (acomp m)) (size` (acomp n & ADD :: [])) (f)) with f
-  ... | 0 rewrite ≔Lemma1 m ((acomp n & ADD :: []) & STORE x :: []) 0 ⟦⟧ $ = {!refl!}
-  ... | (suc f') rewrite ≔Lemma1 m ((acomp n & ADD :: []) & STORE x :: []) f' ⟦⟧ $ = {!!}
--}
---| ≔Lemma1 m ((acomp n & ADD :: []) & STORE x :: []) f ⟦⟧ $ = {!!}
+  -- For prog `P & Q & rest` given `Q & rest ⊢ state'[pc = pos 0] → state''` then `P & Q & rest ⊢ state'[pc = pos 0] → state''[pc = size P + size Q]`
+  Lemma1 : ∀ P Q rest {σ' stk' σ'' stk''} f → storeᴸᴸ' (stateᴸᴸ (Q & rest) (config σ' stk' (pos 0)) (size` Q ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (Q & rest) (config σ'' stk'' (size Q)) f) → storeᴸᴸ' (stateᴸᴸ (P & Q & rest) (config σ' stk' (size P)) (size` Q ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (P & Q & rest) (config σ'' stk'' (size P z+ size Q)) f)
+  Lemma1 [] Q rest f qexec = qexec
+  Lemma1 (x :: xs) Q rest f qexec = Lemma3 x {!!} {!f!} {!!}
+  -}
+
+
+-------------------------------------------------------------------------------------------------------------------
 
   ≔Lemma1 : ∀ P q qs → (P & (q :: qs)) ፦ size P ≡ just q
   ≔Lemma1 [] q qs = refl
@@ -128,7 +125,7 @@ module Proofs.Compiler where
   ≔Lemma2 : ∀ P → P ፦ size P ≡ nothing
   ≔Lemma2 [] = refl
   ≔Lemma2 (x :: xs) rewrite ≔Lemma2 xs = refl
-
+  
   ≔Lemma3,1 : ∀ P Q → size` (P & Q) ≡ size` P ℕ+ size` Q
   ≔Lemma3,1 [] Q = refl
   ≔Lemma3,1 (x :: xs) Q rewrite ≔Lemma3,1 xs Q = refl
@@ -137,10 +134,22 @@ module Proofs.Compiler where
   ≔Lemma3 [] Q = refl
   ≔Lemma3 (x :: xs) Q rewrite ≔Lemma3,1 xs Q = refl
 
+  ≔Lemma3` : ∀ P Q → pos (size` P ℕ+ size` Q) ≡ size (P & Q) 
+  ≔Lemma3` P Q = sym (≔Lemma3 P Q)
+
   ≔Lemma0 : ∀ a rest σ stk f → storeᴸᴸ' (stateᴸᴸ (acomp a & rest) (config σ stk (pos 0)) (size` (acomp a) ℕ+ f)) ≡ storeᴸᴸ' (stateᴸᴸ (acomp a & rest) (config σ ((aexe a σ) , stk) (size (acomp a))) f)
   ≔Lemma0 (NAT n) _ _ _ _ = refl
   ≔Lemma0 (VAR x) _ _ _ _ = refl
-  ≔Lemma0 (a + b) rest σ stk f rewrite ≔Lemma3,1 (acomp a) (acomp b & (ADD :: [])) | &assoc (acomp a) (acomp b & ADD :: []) rest | sym (+assoc (size` (acomp a)) (size` (acomp b & ADD :: [])) f) | ≔Lemma0 a ((acomp b & ADD :: []) & rest) σ stk (size` (acomp b & ADD :: []) ℕ+ f) = {!!}
+  ≔Lemma0 (a + b) rest σ stk f rewrite ≔Lemma3,1 (acomp a) (acomp b & (ADD :: [])) | &assoc (acomp a) (acomp b & ADD :: []) rest | sym (+assoc (size` (acomp a)) (size` (acomp b & ADD :: [])) f) | ≔Lemma0 a ((acomp b & ADD :: []) & rest) σ stk (size` (acomp b & ADD :: []) ℕ+ f) | ≔Lemma3,1 (acomp b) (ADD :: []) | sym (+assoc (size` (acomp b)) 1 f) | &assoc (acomp b) (ADD :: []) rest = {!!}
+
+
+
+--| Lemma1 (acomp a) (acomp b) (ADD :: rest) (suc f) (≔Lemma0 b (ADD :: rest) σ (aexe a σ , stk) (suc f)) | sym (&assoc (acomp a) (acomp b) (ADD :: rest)) | ≔Lemma3` (acomp a) (acomp b) | ≔Lemma1 ((acomp a) & (acomp b)) ADD rest | +comm (aexe a σ) (aexe b σ) | +assoc (size` (acomp a)) (size` (acomp b)) 1 | ≔Lemma3,1 (acomp a) (acomp b) = refl
+
+
+-----------------
+-- Final proof --
+-----------------
 
 
   Lemma0 : ∀ P fᴴᴸ → storeᴴᴸ P fᴴᴸ ≡ storeᴸᴸ (compile P) (fᴴᴸ2ᴸᴸ P fᴴᴸ)

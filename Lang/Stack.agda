@@ -164,6 +164,10 @@ module Lang.Stack where
   &assoc [] Q R = refl
   &assoc (i :: is) Q R rewrite &assoc is Q R = refl
 
+  ::& : ∀ i is → i :: is ≡ i :: [] & is
+  ::& i [] = refl
+  ::& i (x :: xs) rewrite ::& x xs = refl
+
 ----------
   
   data Lem2 : ℤ → Prog → Set where
