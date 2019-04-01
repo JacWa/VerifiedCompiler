@@ -17,13 +17,14 @@ module Misc.Base where
   is (suc y) ≤ 0       = false
   is (suc y) ≤ (suc x) = is y ≤ x
 
-  data _×_ (A B : Set) : Set where
+  infixr 20 _×_ _,_
+  data _×_ {a} (A B : Set a) : Set a where
     _,_ : (a : A)(b : B) → A × B
 
-  fst : ∀ {A B} → (A × B) → A
+  fst : ∀ {a A B} → _×_ {a} A B → A
   fst (x , _) = x
 
-  snd : ∀ {A B} → A × B → B
+  snd : ∀ {a A B} → _×_ {a} A B → B
   snd (_ , y) = y
 
   ≤trans : ∀ {x y z} → x ≤ y → y ≤ z → x ≤ z

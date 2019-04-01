@@ -26,11 +26,28 @@ module Proofs.Trace where
 
 
 
+  lemma1a : ∀ p q → (p & q) ፦ (size p) ≡ q ፦ (pos 0)
+  lemma1a [] q = refl
+  lemma1a (x :: xs) q = lemma1a xs q
+
+  lemma1b : ∀ p q n → (p & q) ፦ (size p z+ (pos n)) ≡ q ፦ (pos n)
+  lemma1b [] q n = refl
+  lemma1b (x :: xs) q n = lemma1b xs q n
+
+
+  lemma1 : ∀ p a {f} {s,t} → traceᴸᴸ' f (p & (acomp a)) (size p) s,t ≡ traceᴸᴸ' f (acomp a) (pos 0) s,t
+  lemma1 [] _ = refl
+  lemma1 (x :: xs) a {0} = refl
+  lemma1 (x :: xs) a {suc f} {s , t} rewrite lemma1a (x :: xs) (acomp a) with a
+  ... | NAT n rewrite +comm 1 1 = {!!}
 
   ---------------------------------------------------------------------------
   --- Proof of equality for traces over arithmetic expression compilation ---
   ---------------------------------------------------------------------------
-  
+
+  atransEQ : ∀ a rest f {s t} → traceᴸᴸ' (size` (acomp a) ℕ+ f) (acomp a & rest) (pos 0) (s , t) ≡ traceᴸᴸ' f (acomp a & rest) (size (acomp a)) (s , t)
+  atransEQ = {!!}
+
   ---------------------------------------------------------------------------
   --- Proof of equality for traces over boolean expression compilation ---
   ---------------------------------------------------------------------------
@@ -48,7 +65,7 @@ module Proofs.Trace where
   -------------------------------------------------------------------
   --- Proof of equality for traces over whole program compilation ---
   -------------------------------------------------------------------
-
+{-
   transEQ-helper-1a : ∀ i → is size` (i :: []) ≤ 0 ≡ false
   transEQ-helper-1a = λ i → refl
 
@@ -63,7 +80,7 @@ module Proofs.Trace where
 
   transEQ-helper-1 : ∀ P {P'} → is size` P' ≤ 0 ≡ false → is size` (P & P') ≤ 0 ≡ false
   transEQ-helper-1 P {P'} prf rewrite size`&+ {P} {P'} = transEQ-helper-1c (size` P) (size` P') 0 prf
-
+-}
   transEQ-helper-2 : ∀ b f c  → EVB b [] ≡ false → traceᴸᴸ f (compile (WHILE b DO c)) ≡ traceᴸᴸ f (bcomp b false (pos (size` (compile c) ℕ+ 1)))
   transEQ-helper-2 = {!!}
 
@@ -101,15 +118,17 @@ module Proofs.Trace where
   whiletrue-helper-1 : ∀ f b c → fst (traceᴴᴸ' (WHILE b DO c) ([] , suc f)) ≡ snd (traceᴸᴸ' (suc f) (compile (WHILE b DO c)) (pos 0) ($ , []))
   whiletrue-helper-1 = {!!}
 
-  transEQ : ∀ P {f} → traceᴴᴸ f P ≡ traceᴸᴸ f (compile P)
-  transEQ _ {0} = {!!} --refl
-  transEQ SKIP {suc f} = refl
-  --transEQ (x ≔ a) {suc f} with EVA a [] | traceA a []
-  --... | n | t rewrite transEQ-helper-1 (acomp a) {STORE x :: []} refl = {!!}
+  transEQ : ∀ P {f} → traceᴴᴸ f P ≡ traceᴸᴸ (fᴴᴸ2ᴸᴸ P f) (compile P)
+  transEQ _ {0} = refl
+  transEQ SKIP {suc f} with f
+  ... | 0 = refl
+  ... | suc n = refl
+  transEQ (x ≔ a) {suc f} with EVA a [] | traceA a []
+  ... | n | t rewrite +sucswap f (size` (acomp a)) = {!!} --rewrite transEQ-helper-1 (acomp a) {STORE x :: []} refl = {!!}
   transEQ (WHILE b DO c) {suc f} with inspect (EVB b [])
   ... | false with≡ prf rewrite transEQ-helper-2 b (suc f) c prf with inspect (is size` (bcomp b false (pos (size` (compile c) ℕ+ 1))) ≤ 0)
-  ... | true with≡ prf2 rewrite transEQ-helper-3 b c (suc f) prf2 | prf2 = refl
-  ... | false with≡ prf2 rewrite prf = btransEQ b (suc f)
+  ... | true with≡ prf2 rewrite transEQ-helper-3 b c (suc f) prf2 | prf2 = {!!} --refl
+  ... | false with≡ prf2 rewrite prf = {!!} --btransEQ b (suc f)
  -- ... | true  = {!!}
   transEQ (WHILE b DO c) {suc f} | true with≡ prf = {!!}
 

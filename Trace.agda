@@ -1,9 +1,8 @@
-{-# OPTIONS --no-termination-check #-}
 module Trace where
   open import Base.DataStructures
   open import Misc.Base
-  open import Lang.Expr
-  open import Lang.Stack
+  open import Lang.Expr 
+  open import Lang.Stack renaming (JMPLESS to JMPLT)
   open import Agda.Builtin.String
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Int renaming (Int to ℤ)
@@ -53,7 +52,8 @@ module Trace where
   traceB (NOT b)   t = traceB b t
   traceB (x AND y) t = traceB y (traceB x t)
   traceB (x LT y)  t = traceA y (traceA x t)
-  
+
+  {-# TERMINATING #-}
   traceᴴᴸ' :  IExp → List Bhvr × ℕ → List Bhvr × ℕ
   traceᴴᴸ' _ (t , 0) = (t , 0)
   traceᴴᴸ' SKIP (t , (suc n)) = t , n
@@ -70,6 +70,7 @@ module Trace where
   traceᴴᴸ : (fuel : ℕ) → IExp → List Bhvr
   traceᴴᴸ n P = fst (traceᴴᴸ' P ([] , n))
 
+{-
   traceI : Inst → (Stack × List Bhvr) × ℤ → (Stack × List Bhvr) × ℤ
   traceI (LOADI x)   ((s , t) , pc) = ((x , s) , t) , (pc z+ pos 1)
   traceI (LOAD  v)   ((s , t) , pc) with LV v t
@@ -91,20 +92,32 @@ module Trace where
   traceI (STORE _) t = t
   traceI (JMPLESS _) t = t
   traceI (JMPGE _) t = t
-  
+ -}
   
 
   traceᴸᴸ' : (fuel : ℕ) → Prog → (PC : ℤ) → Stack × List Bhvr → Stack × List Bhvr
   traceᴸᴸ' 0 _ _ s,t = s,t
-  traceᴸᴸ' (suc n) P PC s,t with iz (size P) ≤ PC
-  ... | true = s,t
-  ... | false with P ፦ PC
-  ... | nothing = s,t -- maybe create proof with iz so that this case is not possible
-  ... | just i with traceI i (s,t , PC)
+  traceᴸᴸ' (suc n) P PC s,t with P ፦ PC
+  ... | nothing = s,t
+  traceᴸᴸ' (suc n) P PC (s , t) | just i with i
+  ... | LOADI x = traceᴸᴸ' n P (zuc PC) ((x , s) , t)
+  ... | LOAD v with LV v t
+  ... | x = traceᴸᴸ' n P (zuc PC) ((x , s) , (RD v x ∷ t))
+  traceᴸᴸ' (suc n) P PC (s , t) | just i | ADD = traceᴸᴸ' n P (zuc PC) (((hd s ℕ+ hd (tl s)) , tl (tl s)) , t)
+  traceᴸᴸ' (suc n) P PC (s , t) | just i | STORE v = traceᴸᴸ' n P (zuc PC) (tl s , (WRT v (hd s) ∷ t))
+  traceᴸᴸ' (suc n) P PC s,t | just i | JMP x = traceᴸᴸ' n P (zuc PC z+ x) s,t
+  traceᴸᴸ' (suc n) P PC (s , t) | just i | JMPLT x with is hd s ≤ hd (tl s)
+  ... | true = traceᴸᴸ' n P (zuc PC) (s , t)
+  ... | false = traceᴸᴸ' n P (zuc PC z+ x) (s , t)
+  traceᴸᴸ' (suc n) P PC (s , t) | just i | JMPGE x with is hd s ≤ hd (tl s)
+  ... | true = traceᴸᴸ' n P (zuc PC z+ x) (s , t)
+  ... | false = traceᴸᴸ' n P (zuc PC) (s , t)
+  
+{-traceI i (s,t , PC)
   ... | s,t' , PC' with iz PC' ≤ PC
   ... | true = traceᴸᴸ' n P PC' (s,t')
   ... | false = traceᴸᴸ' (suc n) P PC' (s,t')
-
+-}
   traceᴸᴸ :  (fuel : ℕ) → Prog → List Bhvr
   traceᴸᴸ n p = snd (traceᴸᴸ' n p (pos 0) ($ , []))
 
@@ -119,4 +132,21 @@ module Trace where
   fuelᴴᴸ²ᴸᴸ' (WHILE bl DO c) (fuel , b) with EVB bl b
   ... | true = fuelᴴᴸ²ᴸᴸ' c ((fuel ℕ+ 1 ℕ+ size` (bcomp bl false (size (compile c) z+ pos 1))) , b)
   ... | false = (fuel ℕ+ size` (bcomp bl false (size (compile c) z+ pos 1))) , b
+
+  {-# TERMINATING #-}
+  fᴴᴸ2ᴸᴸ' : IExp → ℕ × ℕ × State → ℕ × ℕ × State
+  fᴴᴸ2ᴸᴸ' _        (0 , fᴸᴸ , σ)         = (0 , fᴸᴸ , σ)
+  fᴴᴸ2ᴸᴸ' SKIP     (suc fᴴᴸ , fᴸᴸ , σ) = (fᴴᴸ , fᴸᴸ , σ)
+  fᴴᴸ2ᴸᴸ' (x ≔ a) (suc fᴴᴸ , fᴸᴸ , σ) = (fᴴᴸ , suc (fᴸᴸ ℕ+ size` (acomp a)) , ((x ≔ (aexe a σ)) ∷ σ))
+  fᴴᴸ2ᴸᴸ' (P ⋯ Q) (suc fᴴᴸ , fᴸᴸ , σ) = fᴴᴸ2ᴸᴸ' Q (fᴴᴸ2ᴸᴸ' P (suc fᴴᴸ , fᴸᴸ , σ))
+  fᴴᴸ2ᴸᴸ' (IF b THEN P ELSE Q) ((suc fᴴᴸ) , fᴸᴸ , σ) with bexe b σ
+  ... | true  = fᴴᴸ2ᴸᴸ' P (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (pos 1)))) , σ)
+  ... | false = fᴴᴸ2ᴸᴸ' Q (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (pos 1)))) , σ)
+  fᴴᴸ2ᴸᴸ' (WHILE b DO c) (suc fᴴᴸ , fᴸᴸ , σ) with bexe b σ
+  ... | true  = fᴴᴸ2ᴸᴸ' (c ⋯ (WHILE b DO c)) (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ pos 1))) , σ)
+  ... | false = fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ pos 1))) , σ
+
+  fᴴᴸ2ᴸᴸ : IExp → ℕ → ℕ
+  fᴴᴸ2ᴸᴸ I fᴴᴸ with fᴴᴸ2ᴸᴸ' I (fᴴᴸ , 0 , ⟦⟧)
+  ... | fᴴᴸ' , fᴸᴸ , _ = fᴴᴸ' ℕ+ fᴸᴸ
 

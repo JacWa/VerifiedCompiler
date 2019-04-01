@@ -30,6 +30,9 @@ module Proofs.NatProofs where
     +comm (suc n) m rewrite +comm n m = +swap {m} {n} -- with (n + m) | +comm n m
 --    ... | .(m + n) | refl = +swap {m} {n}
 
+    +sucswap : ∀ x y → x + suc y ≡ y + suc x
+    +sucswap x y rewrite +comm x (suc y) | +comm y (suc x) | +comm x y = refl
+
     +assoc : (x y z : ℕ) → (x + (y + z)) ≡ ((x + y) + z)
     +assoc 0 y z = refl
     +assoc (suc x) y z rewrite +assoc x y z = refl
