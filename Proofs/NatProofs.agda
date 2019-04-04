@@ -5,6 +5,9 @@ module Proofs.NatProofs where
     open import Agda.Builtin.Equality
     open import Proofs.Basic
 
+    1+≡suc : ∀ n → suc n ≡ 1 + n
+    1+≡suc n = refl
+
     +1≡suc : (n : ℕ) → n + 1 ≡ suc n
     +1≡suc 0 = refl
     +1≡suc (suc n) rewrite +1≡suc n = refl
@@ -16,7 +19,7 @@ module Proofs.NatProofs where
     *1 0 = refl
     *1 (suc x) rewrite *1 x = refl
 
-    +swap : {a b : ℕ} → (suc (a + b) ≡ (a + suc b)) 
+    +swap : {a b : ℕ} → suc (a + b) ≡ (a + suc b)
     +swap {0} {b} = refl
     +swap {suc a} {b} with (a + suc b) | (+swap {a} {b})
     ... | .(suc (a + b)) | refl = refl
@@ -33,7 +36,7 @@ module Proofs.NatProofs where
     +sucswap : ∀ x y → x + suc y ≡ y + suc x
     +sucswap x y rewrite +comm x (suc y) | +comm y (suc x) | +comm x y = refl
 
-    +assoc : (x y z : ℕ) → (x + (y + z)) ≡ ((x + y) + z)
+    +assoc : (x y z : ℕ) → x + (y + z) ≡ x + y + z
     +assoc 0 y z = refl
     +assoc (suc x) y z rewrite +assoc x y z = refl
 
@@ -111,6 +114,19 @@ module Proofs.NatProofs where
     =<^r {y = 0} (suc (suc n)) p rewrite *0 n = p
     =<^r {y = suc y} (suc (suc n)) p = =<*r (suc y) (=<^r (suc n) p)
 
-    test : (n : ℕ) → n + 2 ≡ (suc n) + 1
-    test 0 = refl
-    test (suc x) rewrite test x = refl
+    test : (n : ℕ) → suc (suc n) ≡ 2 + n
+    test n = refl
+
+    
+
+    +- : ∀ x y → (x + y) ∸ y ≡ x
+    +- x 0 rewrite +comm x 0 = refl
+    +- x (suc y) rewrite +comm x (suc y) | +comm y x = +- x y
+
+    +-suc : ∀ x y → x + suc y ∸ y ≡ suc x
+    +-suc x 0 rewrite +comm x 1 = refl
+    +-suc x (suc y) rewrite sym (+swap {x} {suc y}) | +-suc x y = refl
+
+    si1 : ∀ x y → suc (x + y) ≡ x + 1 + y
+    si1 x y rewrite +comm x 1 = refl
+    

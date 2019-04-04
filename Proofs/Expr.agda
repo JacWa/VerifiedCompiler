@@ -1,7 +1,7 @@
 module Proofs.Expr where
 
   open import Lang.Expr
-  open import Base.DataStructures
+  open import Base.DataStructures 
   open import Agda.Builtin.Equality
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
@@ -77,41 +77,43 @@ module Proofs.Expr where
                                                                      [ (WHILE bool DO this) , s ]⇓ s''
 
   -- Small step semantics.
-  data ⟦_,_⟧↦⟦_,_⟧ : State → IExp → State → IExp → Set where
+  data ⟦_,_,_⟧↦⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
 
-    assign  : ∀ {x n s} →
+    empty : ∀ {σ I} → ⟦ σ , I , 0 ⟧↦⟦ σ , SKIP , 0 ⟧ 
+
+    assign  : ∀ {x n s f} →
                             ---------------------------------------------------
-                             ⟦ s , (x ≔ n) ⟧↦⟦ (x ≔ (aexe n s)) ∷ s , SKIP ⟧
+                             ⟦ s , (x ≔ n) , (suc f) ⟧↦⟦ (x ≔ (aexe n s)) ∷ s , SKIP , f ⟧
 
 
-    seqbase : ∀ {s that} →
+    seqskip : ∀ {s that f} →
                             ----------------------------------
-                             ⟦ s , SKIP ⋯ that ⟧↦⟦ s , that ⟧
+                             ⟦ s , SKIP ⋯ that , (suc f) ⟧↦⟦ s , that , f ⟧
 
 
-    seqstep : ∀ {this s s' this' that} →         ⟦ s , this ⟧↦⟦ s' , this' ⟧ →
-                                           ------------------------------------------
-                                            ⟦ s , this ⋯ that ⟧↦⟦ s' , this' ⋯ that ⟧
+    seqstep : ∀ {this s s' this' that f f'} →         ⟦ s , this , f ⟧↦⟦ s' , this' , f' ⟧ →
+                                           ---------------------------------------------------
+                                            ⟦ s , this ⋯ that , f ⟧↦⟦ s' , this' ⋯ that , f' ⟧
 
 
-    iftrue  : ∀ {s b i i'} →                  (bexe b s) ≡ true →
+    iftrue  : ∀ {s b i i' f} →                  (bexe b s) ≡ true →
                                      ---------------------------------------
-                                      ⟦ s , IF b THEN i ELSE i' ⟧↦⟦ s , i ⟧
+                                      ⟦ s , IF b THEN i ELSE i' , suc f ⟧↦⟦ s , i , f ⟧
 
 
-    iffalse : ∀ {s b i i'} →                  (bexe b s) ≡ false →
+    iffalse : ∀ {s b i i' f} →                  (bexe b s) ≡ false →
                                      ----------------------------------------
-                                      ⟦ s , IF b THEN i ELSE i' ⟧↦⟦ s , i' ⟧
+                                      ⟦ s , IF b THEN i ELSE i' , suc f ⟧↦⟦ s , i' , f ⟧
                                       
-    whilefalse   : ∀ {s b c} →           bexe b s ≡ false →
+    whilefalse   : ∀ {s b c f} →           bexe b s ≡ false →
                                   -----------------------------------
-                                   ⟦ s , WHILE b DO c ⟧↦⟦ s , SKIP ⟧
+                                   ⟦ s , WHILE b DO c , suc f ⟧↦⟦ s , SKIP , f ⟧
 
 
-    whiletrue   : ∀ {s b c} →                         bexe b s ≡ true →
+    whiletrue   : ∀ {s b c f} →                         bexe b s ≡ true →
                                   ---------------------------------------------------
-                                   ⟦ s , WHILE b DO c ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) ⟧
+                                   ⟦ s , WHILE b DO c , suc f ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) , f ⟧
 
 
-
-  
+  getFinalStoreᴴᴸ : ∀ {σ' σ i i' f f'} → ⟦ σ , i , f ⟧↦⟦ σ' , i' , f' ⟧ → State
+  getFinalStoreᴴᴸ {σ'} = λ _ → σ'
