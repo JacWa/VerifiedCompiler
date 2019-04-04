@@ -9,19 +9,54 @@ module Proofs.VerifiedCompilation where
 
   open import Compiler
 
-  open import Data.Nat renaming (_+_ to _ℕ+_)
-  open import Data.Integer renaming (_+_ to _ℤ+_; suc to zuc)
+  open import Data.Nat renaming (_+_ to _ℕ+_) hiding (_≟_)
+  open import Data.Integer renaming (_+_ to _ℤ+_; suc to zuc) hiding (_≟_)
+  open import Data.Bool
+  open import Data.Maybe
 
   open import Base.DataStructures
   open import Misc.Base
 
   open import Relation.Binary.PropositionalEquality hiding (inspect)
-  open import Data.Maybe
-
-  open import Agda.Builtin.Bool
+  open import Relation.Binary
 
 
+  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (+ (fᴴᴸ2ᴸᴸ I f ∸ f')) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
+  Lemma _ {f = 0} done none = refl
+  Lemma _ {f = 0} done (some () _)
+  Lemma (SKIP) {f = suc f} (step () _)
+  Lemma (x ≔ (NAT n)) {f = suc f} (step assign done) w rewrite +comm f 2 | +- 2 f with w
+  ... | some (⊢LOADI refl) (some (⊢STORE refl) none) = refl
+  ... | some (⊢LOADI refl) (some (⊢LOADI ()) _)
+  ... | some (⊢LOADI refl) (some (⊢LOAD ()) _)
+  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢LOADI ()) _))
+  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢LOAD ()) _))
+  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢JMP ()) _))
+  ... | some (⊢LOADI refl) (some (⊢JMP ()) _)
+  ... | some (⊢LOAD ()) _
+  ... | some (⊢JMP ()) _
+  Lemma (x ≔ (VAR y)) {f = suc f} (step assign done) w rewrite +comm f 2 | +- 2 f with w
+  ... | some (⊢LOAD refl) (some (⊢STORE refl) none) = refl
+  ... | some (⊢LOAD refl) (some (⊢LOADI ()) _)
+  ... | some (⊢LOAD refl) (some (⊢LOAD ()) _)
+  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢LOADI ()) _))
+  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢LOAD ()) _))
+  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢JMP ()) _))
+  ... | some (⊢LOAD refl) (some (⊢JMP ()) _)
+  ... | some (⊢LOADI ()) _
+  ... | some (⊢JMP ()) _
+  Lemma (x ≔ (m + n)) {f = suc f} (step assign done) w = {!!}
+  Lemma (WHILE b DO c) {σ} _ _ with bexe b σ
+  Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  _ | true  rewrite prf = {!!}
+  Lemma (WHILE b DO c) {f = suc f} (step (whilefalse prf) rest)  _ | false rewrite prf = {!!}
+  
 
+
+
+
+
+
+{-
   
 
 
@@ -45,17 +80,4 @@ module Proofs.VerifiedCompilation where
   Lemma3 : ∀ I f {σ σ' f'} → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σ' $ (+ (fᴴᴸ2ᴸᴸ I f ∸ f')) , f' ⟧ → ⟦ σ , I , f ⟧↦⟦ σ' , SKIP , f' ⟧
   Lemma3 _ 0 none = empty
   Lemma3 _ 0 (some () _)
-
-
-
-
-
-
-  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (+ (fᴴᴸ2ᴸᴸ I f ∸ f')) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
-  Lemma _ {f = 0} empty none = refl
-  Lemma _ {f = 0} empty (some () _)
-  Lemma (SKIP) {f = suc f} ()
-  Lemma (x ≔ a) {f = suc f} assign = {!!}
-  Lemma (WHILE b DO c) {σ} _ _ with bexe b σ
-  Lemma (WHILE b DO c) {f = suc f} WHILEtrue | true  = ?
-
+-}

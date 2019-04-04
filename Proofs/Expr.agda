@@ -115,5 +115,16 @@ module Proofs.Expr where
                                    ⟦ s , WHILE b DO c , suc f ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) , f ⟧
 
 
+
+  data ⟦_,_,_⟧↦*⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
+
+    done : ∀ {σ f} → ⟦ σ , SKIP , f ⟧↦*⟦ σ , SKIP , f ⟧ 
+    step : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ →
+                                            --------------------------------------------------------------------------
+                                                           ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
+    
+    
+    
+
   getFinalStoreᴴᴸ : ∀ {σ' σ i i' f f'} → ⟦ σ , i , f ⟧↦⟦ σ' , i' , f' ⟧ → State
   getFinalStoreᴴᴸ {σ'} = λ _ → σ'
