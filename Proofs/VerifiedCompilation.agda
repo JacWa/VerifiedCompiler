@@ -20,11 +20,28 @@ module Proofs.VerifiedCompilation where
   open import Relation.Binary.PropositionalEquality hiding (inspect)
   open import Relation.Binary
 
+  Lemma1a : ∀ a x σ σ' s f → (acomp a) ⊢⟦ config σ s (+ 0) , suc (f ℕ+ size` (acomp a)) ⟧⇒*⟦ config σ (aexe a σ , s) (+ size` (acomp a)) , suc f ⟧ → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ' s (+ suc (size` (acomp a))) , f ⟧ → σ' ≡ ((x ≔ (aexe a σ)) ∷ σ)
+  Lemma1a a x σ σ' s f acomp = ? 
+
+  
+  Lemma1b' : ∀ a {σ s f} → (acomp a) ⊢⟦ config σ s (+ 0) , (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ (aexe a σ , s) (+ size` (acomp a)) , f ⟧
+  Lemma1b' (NAT n) = some (⊢LOADI refl) none
+  Lemma1b' (VAR x) = some (⊢LOAD refl) none
+  Lemma1b' (a + b) rewrite +comm 1 1 = {!!}
+
+  Lemma1b : ∀ a σ s f → (acomp a) ⊢⟦ config σ s (+ 0) , (f ℕ+ size` (acomp a)) ⟧⇒*⟦ config σ (aexe a σ , s) (+ size` (acomp a)) , f ⟧
+  Lemma1b a σ s f rewrite +comm f (size` (acomp a)) = Lemma1b' a
+
+  Lemma1 : ∀ {a x σ f σᴸᴸ} → ((acomp a) & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σᴸᴸ $ (+ suc (size` (acomp a))) , f ⟧  → σᴸᴸ ≡ ((x ≔ (aexe a σ)) ∷ σ)
+  Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w rewrite Lemma1a a x σ σᴸᴸ $ f (Lemma1b a σ $ (suc f)) w = refl
+
 
   Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (+ (fᴴᴸ2ᴸᴸ I f ∸ f')) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
   Lemma _ {f = 0} done none = refl
   Lemma _ {f = 0} done (some () _)
   Lemma (SKIP) {f = suc f} (step () _)
+  Lemma (x ≔ a) {σ} {f = suc f} (step assign done) w rewrite +comm f (suc (size` (acomp a))) | +- (suc (size` (acomp a))) f | Lemma1 {a} w = refl
+{-
   Lemma (x ≔ (NAT n)) {f = suc f} (step assign done) w rewrite +comm f 2 | +- 2 f with w
   ... | some (⊢LOADI refl) (some (⊢STORE refl) none) = refl
   ... | some (⊢LOADI refl) (some (⊢LOADI ()) _)
@@ -45,7 +62,8 @@ module Proofs.VerifiedCompilation where
   ... | some (⊢LOAD refl) (some (⊢JMP ()) _)
   ... | some (⊢LOADI ()) _
   ... | some (⊢JMP ()) _
-  Lemma (x ≔ (m + n)) {f = suc f} (step assign done) w = {!!}
+  Lemma (x ≔ (a + b)) {σ} {f = suc f} (step assign done) w rewrite +comm f (suc (size` (acomp a & acomp b & ADD :: []))) | +- (suc (size` (acomp a & acomp b & ADD :: []))) f | Lemma1 {a + b} w = refl
+-}
   Lemma (WHILE b DO c) {σ} _ _ with bexe b σ
   Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  _ | true  rewrite prf = {!!}
   Lemma (WHILE b DO c) {f = suc f} (step (whilefalse prf) rest)  _ | false rewrite prf = {!!}
