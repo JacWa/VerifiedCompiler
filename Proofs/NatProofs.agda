@@ -17,7 +17,7 @@ module Proofs.NatProofs where
 
     *1 : (n : ℕ) → n * 1 ≡ n
     *1 0 = refl
-    *1 (suc x) rewrite *1 x = refl
+    *1 (suc x) rewrite *1 x = refl --rewrite *1 x = refl
 
     +swap : {a b : ℕ} → suc (a + b) ≡ (a + suc b)
     +swap {0} {b} = refl

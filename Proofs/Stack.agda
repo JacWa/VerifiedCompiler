@@ -16,8 +16,6 @@ module Proofs.Stack where
   open import Proofs.NatProofs
   open import Relation.Binary
 
-  []&P≡P : ∀ P → [] & P ≡ P
-  []&P≡P p = refl
 
   data _⊢⟦_,_⟧⇒⟦_,_⟧ : Prog → Config → ℕ → Config → ℕ → Set where
   
@@ -85,7 +83,30 @@ module Proofs.Stack where
   &assoc [] Q R = refl
   &assoc (i :: is) Q R rewrite &assoc is Q R = refl
 
- 
+  insertAtEnd : ∀ {p c f c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧
+  insertAtEnd none w = some w none
+  insertAtEnd (some one rest) w = some one (insertAtEnd rest w)
+
+{-
+  matchingσ : ∀ {p pc σ σ₁ σ₂ s s' pc' f f'} → p ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ₁ s' pc' , f' ⟧ → p ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ₂ s' pc' , f' ⟧ → σ₁ ≡ σ₂
+  matchingσ none none = refl
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢LOADI x₁) rest') = {!matchingσ rest rest'!}
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢LOAD ()) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢STORE ()) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢ADD ()) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢JMP ()) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢JMPLESSfalse () x₂) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢JMPLESStrue () x₂) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢JMPGEtrue () x₂) rest')
+  matchingσ {LOADI x :: is} {pc = + 0} (some (⊢LOADI refl) rest) (some (⊢JMPGEfalse () x₂) rest')
+  matchingσ {LOAD x :: is} (some one rest) w = {!!}
+  matchingσ {ADD :: is} (some one rest) w = {!!}
+  matchingσ {STORE x :: is} (some one rest) w = {!!}
+  matchingσ {JMP x :: is} (some one rest) w = {!!}
+  matchingσ {JMPLESS x :: is} (some one rest) w = {!!}
+  matchingσ {JMPGE x :: is} (some one rest) w = {!!}
+-}
+
   stacklem1a : ∀ p q {pc a} → p ፦ pc ≡ just a → p ፦ pc ≡ (p & q) ፦ pc
   stacklem1a [] _ ()
   stacklem1a p [] _ rewrite &[] {p} = refl
@@ -111,6 +132,8 @@ module Proofs.Stack where
   stacklem1 : ∀ {p q c c' f f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → (p & q) ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
   stacklem1 none = none
   stacklem1 (some one then) = some (stacklem1c one) (stacklem1 then)
+
+  
 
 
   nothing≡pc : ∀ {σ s pc σ' s' pc' f f'} → [] ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → pc ≡ pc'
@@ -174,12 +197,63 @@ module Proofs.Stack where
   nothing≡f (some (⊢JMPLESSfalse () _) _)
   nothing≡f (some (⊢JMPGEfalse () _) _)
 
+  postulate
+    det1 : ∀ p c f {c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ ≡ p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧
+ {-
+  det1 [] _ _ (⊢LOADI ()) _
+  det1 [] _ _ (⊢LOAD ()) _
+  det1 [] _ _ (⊢ADD ()) _
+  det1 [] _ _ (⊢STORE ()) _
+  det1 [] _ _ (⊢JMP ()) _
+  det1 [] _ _ (⊢JMPLESStrue () _) _
+  det1 [] _ _ (⊢JMPLESSfalse () _) _
+  det1 [] _ _ (⊢JMPGEtrue () _) _
+  det1 [] _ _ (⊢JMPGEfalse () _) _ -}
+--  det1 (i :: is) (config σ s pc) _ _ _ with inspect (p ፦ pc)
+
+  postulate
+    deterministic : ∀ {p c f σ' s' pc' σ'' s'' f' f''} → p ⊢⟦ c , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ config σ'' s'' pc' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ ≡ p ⊢⟦ c , f ⟧⇒*⟦ config σ'' s'' pc' , f'' ⟧
+{-  deterministic [] _ _ a b rewrite nothing≡f a | nothing≡f b | nothing≡c a | nothing≡c b = refl
+  deterministic (i :: is) (config σ s pc) _ l r with inspect ((i :: is) ፦ pc)
+  deterministic p c _ none none | nothing with≡ q = refl
+  deterministic (i :: is) (config _ _ _) _ (some (⊢LOADI x) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢LOAD x) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢STORE x) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢ADD x) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢JMP x) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢JMPLESSfalse x x₁) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢JMPLESStrue x x₁) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢JMPGEtrue x x₁) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  deterministic (i :: is) (config _ _ _) _ (some (⊢JMPGEfalse x x₁) _) _ | nothing with≡ q rewrite q with x
+  ... | ()
+  
+  -}
+
+  pclem1 : ∀ {p q pc} → (p & q) ፦ (pc z+ size p) ≡ q ፦ pc
+  pclem1 {[]} {q} {pc} rewrite +-identityʳ pc = refl
+  
+
+  postulate
+    σ≡ : ∀ {p c f σ' σ'' s' pc' f'} → p ⊢⟦ c , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ ≡ p ⊢⟦ c , f ⟧⇒*⟦ config σ'' s' pc' , f' ⟧ → σ'' ≡ σ' 
+
   stacklem2b : ∀ p q {pc i} → q ፦ pc ≡ just i → (p & q) ፦ (pc z+ size p) ≡ just i
   stacklem2b [] q {pc} prf rewrite sym (prf) | z+0 pc = refl
   stacklem2b (i :: is) q {+ 0} prf rewrite 0+z (size (i :: is)) = stacklem2b is q prf
   stacklem2b (i :: is) q {+ (suc n)} prf rewrite +comm n (suc (size` is)) | +comm (size` is) n = stacklem2b is q prf
   stacklem2b (i :: is) [] { -[1+ _ ]} ()
   stacklem2b (i :: is) (q :: qs) { -[1+ _ ]} ()
+
+  stacklem2c : ∀ p i is → (p & i :: is) ፦ (size p) ≡ just i
+  stacklem2c [] i is = refl
+  stacklem2c (x :: xs) i is = stacklem2c xs i is
   
   stacklem2a : ∀ p q {σ s f pc' σ' s' f'} → q ⊢⟦ config σ s (+ 0) , f ⟧⇒⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (size p) , f ⟧⇒⟦ config σ' s' (size p z+ pc') , f' ⟧
   stacklem2a p q (⊢LOADI x) rewrite +comm (size` p) 1 = ⊢LOADI (stacklem2b p q x)
