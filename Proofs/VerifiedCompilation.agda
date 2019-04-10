@@ -25,12 +25,15 @@ module Proofs.VerifiedCompilation where
 -- Lemma(1)'s -- Proofs for semantics over arithmetic expressions --
 --------------------------------------------------------------------
 
-  Lemma1a : ∀ a x σ σ' s f → (acomp a) ⊢⟦ config σ s (+ 0) , suc (f ℕ+ size` (acomp a)) ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , suc f ⟧ → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ' s (+ suc (size` (acomp a))) , f ⟧ → σ' ≡ ((x ≔ (aexe a σ)) ∷ σ)
+  Lemma1a : ∀ a x σ σ' s f → (acomp a) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , suc f ⟧ → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ' s (+ suc (size` (acomp a))) , f ⟧ → σ' ≡ ((x ≔ (aexe a σ)) ∷ σ)
   Lemma1a a x σ σ' s f asem sem with (stacklem1 {q = STORE x :: []} asem)
-  ... | w with insertAtEnd w (⊢STORE {x = x} (pclem1 {acomp a} {STORE x :: []} {+ 0}))
-  ... | w' rewrite +comm f (size` (acomp a)) with deterministic w' sem
-  ... | w'' rewrite w'' = σ≡ w'' 
+  ... | w with insertAtEnd w (⊢STORE {x = x} (pclem1 {acomp a} {STORE x :: []} {+ 0} refl))
+  ... | w' = deterministic w' sem
 
+
+{-with deterministic w' sem
+  ... | w'' rewrite w'' = σ≡ w'' 
+-}
   Lemma1f : ∀ e {p c f c' f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , e ℕ+ f ⟧⇒⟦ c' , e ℕ+ f' ⟧
   Lemma1f n {f' = f'} (⊢LOADI x) rewrite +comm n (suc f') | +comm n f' = ⊢LOADI x
   Lemma1f n {f' = f'} (⊢LOAD x₁) rewrite +comm n (suc f') | +comm n f' = ⊢LOAD x₁
@@ -64,11 +67,10 @@ module Proofs.VerifiedCompilation where
   Lemma1b' (a + b) {σ} {s} {f} with stacklem1 {q = ADD :: []} (Lemma1e 1 (Lemma1c' (acomp a) b {σ} {s} {f} (Lemma1b' a)))
   ... | w rewrite &assoc (acomp a) (acomp b) (ADD :: []) | size`&+ {acomp a & acomp b} {ADD :: []} | size`&+ {acomp a} {acomp b} | +comm (size` (acomp a) ℕ+ size` (acomp b)) 1 | +comm (aexe a σ) (aexe b σ) | sym (size`&+ {acomp a} {acomp b}) = insertAtEnd w (⊢ADD (stacklem2c (acomp a & acomp b) ADD []))
 
-  Lemma1b : ∀ a σ s f → (acomp a) ⊢⟦ config σ s (+ 0) , (f ℕ+ size` (acomp a)) ⟧⇒*⟦ config σ (aexe a σ , s) (+ size` (acomp a)) , f ⟧
-  Lemma1b a σ s f rewrite +comm f (size` (acomp a)) = Lemma1b' a
 
   Lemma1 : ∀ {a x σ f σᴸᴸ} → ((acomp a) & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σᴸᴸ $ (+ suc (size` (acomp a))) , f ⟧  → σᴸᴸ ≡ ((x ≔ (aexe a σ)) ∷ σ)
-  Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w rewrite Lemma1a a x σ σᴸᴸ $ f (Lemma1b a σ $ (suc f)) w = refl
+  Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w with Lemma1b' a {σ} {$} {suc f}
+  ... | w' rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) | Lemma1a a x σ σᴸᴸ $ f w' w = refl
 
 
 

@@ -10,6 +10,7 @@ module Misc.Base where
   open import Proofs.NatProofs
   open import Proofs.Basic
   open import Relation.Nullary
+  open import Data.Empty
   import Level using (zero)
 
   is_≤_ : ℕ → ℕ → Bool
@@ -42,6 +43,10 @@ module Misc.Base where
   ≤= : ∀ {x} → x ≤ x
   ≤= {0} = _≤_.z≤n
   ≤= {suc x} = _≤_.s≤s ≤=
+
+  s≤→⊥ : ∀ {x} → suc x ≤ x → ⊥
+  s≤→⊥ {0} ()
+  s≤→⊥ {suc x} (_≤_.s≤s p) = s≤→⊥ p
 
   _n-_ : ℕ → ℕ → ℤ
   x       n- 0       = + x
