@@ -228,3 +228,10 @@ module Misc.Base where
 
   +suc : ∀ x y → + suc x ≡ + suc y → + x ≡ + y
   +suc x y refl = refl
+
+
+  bool⊥' : true ≡ false → ⊥
+  bool⊥' ()
+
+  bool⊥ : false ≡ true → ⊥
+  bool⊥ ()

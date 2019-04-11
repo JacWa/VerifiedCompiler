@@ -6,7 +6,10 @@ module Proofs.Expr where
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
   open import Misc.Base
-
+  open import Data.Empty
+  open import Relation.Nullary
+  open import Data.Bool.Properties using (∧-comm)
+  
   -- Big step semantics on AExp.
   data [_,_]⇃_ : AExp → State → ℕ → Set where
 
@@ -79,7 +82,7 @@ module Proofs.Expr where
   -- Small step semantics.
   data ⟦_,_,_⟧↦⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
 
-    empty : ∀ {σ I} → ⟦ σ , I , 0 ⟧↦⟦ σ , SKIP , 0 ⟧ 
+    empty : ∀ {σ I} → ¬ I ≡ SKIP → ⟦ σ , I , 0 ⟧↦⟦ σ , SKIP , 0 ⟧ 
 
     assign  : ∀ {x n s f} →
                             ---------------------------------------------------
@@ -129,3 +132,34 @@ module Proofs.Expr where
 
   getFinalStoreᴴᴸ : ∀ {σ' σ i i' f f'} → ⟦ σ , i , f ⟧↦⟦ σ' , i' , f' ⟧ → State
   getFinalStoreᴴᴸ {σ'} = λ _ → σ'
+
+  skipseqσ : ∀ {σ f σ' f' I} → ⟦ σ , SKIP , f ⟧↦*⟦ σ' , I , f' ⟧ → σ' ≡ σ
+  skipseqσ done = refl
+  skipseqσ (step (empty ¬prf) rest) = ⊥-elim (¬prf refl)
+
+  skipseqf : ∀ {σ f σ' f' I} → ⟦ σ , SKIP , f ⟧↦*⟦ σ' , I , f' ⟧ → f' ≡ f
+  skipseqf done = refl
+  skipseqf (step (empty ¬prf) rest) = ⊥-elim (¬prf refl)
+
+  falsel : ∀ {a b σ} → bexe (a AND b) σ ≡ false → bexe a σ ≡ true → bexe b σ ≡ false
+  falsel p1 p2 rewrite p2 = p1
+
+  falser : ∀ {a b σ} → bexe (a AND b) σ ≡ false → bexe b σ ≡ true → bexe a σ ≡ false
+  falser {a} {σ = σ} p1 p2 rewrite p2 | ∧-comm (bexe a σ) true = p1
+
+
+  nofᴴ' : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦⟦ σ' , I' , f' ⟧ → σ' ≡ σ
+  nofᴴ' (empty x) = refl
+  nofᴴ' (seqstep x) = nofᴴ' x
+
+  nofᴴ'f : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦⟦ σ' , I' , f' ⟧ → f' ≡ 0
+  nofᴴ'f (empty x) = refl
+  nofᴴ'f (seqstep x) = nofᴴ'f x
+
+  nofᴴ : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦*⟦ σ' , I' , f' ⟧ → σ' ≡ σ
+  nofᴴ done = refl
+  nofᴴ (step x rest) rewrite nofᴴ' x | nofᴴ'f x = nofᴴ rest
+
+  nofᴴf : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦*⟦ σ' , I' , f' ⟧ → f' ≡ 0
+  nofᴴf done = refl
+  nofᴴf (step x rest) rewrite nofᴴ' x | nofᴴ'f x = nofᴴf rest

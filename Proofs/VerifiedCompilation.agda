@@ -3,6 +3,7 @@ module Proofs.VerifiedCompilation where
   open import Proofs.NatProofs
   open import Proofs.Expr
   open import Proofs.Stack
+  open import Proofs.ArithSemantics
 
   open import Lang.Expr
   open import Lang.Stack
@@ -13,103 +14,51 @@ module Proofs.VerifiedCompilation where
   open import Data.Integer renaming (_+_ to _ℤ+_; suc to zuc) hiding (_≟_)
   open import Data.Bool
   open import Data.Maybe
+  open import Data.Empty
 
   open import Base.DataStructures
   open import Misc.Base
 
   open import Relation.Binary.PropositionalEquality hiding (inspect)
   open import Relation.Binary
+  open import Relation.Nullary
 
 
---------------------------------------------------------------------
--- Lemma(1)'s -- Proofs for semantics over arithmetic expressions --
---------------------------------------------------------------------
 
-  Lemma1a : ∀ a x σ σ' s f → (acomp a) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , suc f ⟧ → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ' s (+ suc (size` (acomp a))) , f ⟧ → σ' ≡ ((x ≔ (aexe a σ)) ∷ σ)
-  Lemma1a a x σ σ' s f asem sem with (stacklem1 {q = STORE x :: []} asem)
-  ... | w with insertAtEnd w (⊢STORE {x = x} (pclem1 {acomp a} {STORE x :: []} {+ 0} refl))
-  ... | w' = deterministic w' sem
+  postulate
+    Lemma2 : ∀ b Q {f f' s σ} → bexe b σ ≡ false → (bcomp b false (size Q) & Q) ⊢⟦ config σ s (+ 0) , f ⟧⇒*⟦ config σ s (size (bcomp b false (size Q) & Q)) , f' ⟧    
+    Lemma3 : ∀ b Q {f f' s σ} → bexe b σ ≡ true  → (bcomp b false (size Q) & Q) ⊢⟦ config σ s (+ 0) , f ⟧⇒*⟦ config σ s (size (bcomp b false (size Q)))     , f' ⟧
+ 
 
 
-{-with deterministic w' sem
-  ... | w'' rewrite w'' = σ≡ w'' 
+{-  Lemma2 : ∀ {c f s b σ} → bexe b σ ≡ false → compile (WHILE b DO c) ⊢⟦ config σ s (+ 0) , fᴴᴸ2ᴸᴸ (WHILE b DO c) (suc f) ⟧⇒*⟦ config σ s (size (compile (WHILE b DO c))) , f ⟧
+  Lemma2 {c} {f} {b = BOOL false} prf rewrite +comm f 1 | size`&+ {compile c} {JMP -[1+ size` (compile c) ℕ+ 1 ] :: []} = some (⊢JMP refl) none
+  Lemma2 {b = BOOL true} ()
+  Lemma2 {b = NOT b} prf = {!!}
+  Lemma2 {b = a AND b} {σ} prf with (bexe a σ) ≟ true
+  Lemma2 {s = _} {a AND b} {σ} prf | yes p = {!!}
+  Lemma2 {s = _} {a AND b} {σ} prf | no ¬p = {!!}
+  Lemma2 {b = x LT x₁} prf = {!!}
 -}
-  Lemma1f : ∀ e {p c f c' f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , e ℕ+ f ⟧⇒⟦ c' , e ℕ+ f' ⟧
-  Lemma1f n {f' = f'} (⊢LOADI x) rewrite +comm n (suc f') | +comm n f' = ⊢LOADI x
-  Lemma1f n {f' = f'} (⊢LOAD x₁) rewrite +comm n (suc f') | +comm n f' = ⊢LOAD x₁
-  Lemma1f n {f' = f'} (⊢STORE x₁) rewrite +comm n (suc f') | +comm n f' = ⊢STORE x₁
-  Lemma1f n {f' = f'} (⊢ADD x) rewrite +comm n (suc f') | +comm n f' = ⊢ADD x
-  Lemma1f n {f' = f'} (⊢JMP x) rewrite +comm n (suc f') | +comm n f' = ⊢JMP x
-  Lemma1f n {f' = f'} (⊢JMPLESSfalse x x₁) rewrite +comm n (suc f') | +comm n f' = ⊢JMPLESSfalse x x₁
-  Lemma1f n {f' = f'} (⊢JMPLESStrue x x₁) rewrite +comm n (suc f') | +comm n f' = ⊢JMPLESStrue x x₁
-  Lemma1f n {f' = f'} (⊢JMPGEtrue x x₁) rewrite +comm n (suc f') | +comm n f' = ⊢JMPGEtrue x x₁
-  Lemma1f n {f' = f'} (⊢JMPGEfalse x x₁) rewrite +comm n (suc f') | +comm n f' = ⊢JMPGEfalse x x₁
-
-  Lemma1e : ∀ e {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , e ℕ+ f ⟧⇒*⟦ c' , e ℕ+ f' ⟧
-  Lemma1e n none = none
-  Lemma1e n (some one rest) = some (Lemma1f n one) (Lemma1e n rest)
-
-
-  Lemma1c' : ∀ P b {σ s f σ' s'} → P ⊢⟦ config σ s (+ 0) , (size` P ℕ+ f) ⟧⇒*⟦ config σ' s' (size P) , f ⟧ →  (P & acomp b) ⊢⟦ config σ s (+ 0) , (size` (P & acomp b) ℕ+ f) ⟧⇒*⟦ config σ' (aexe b σ' , s') (size (P & acomp b)) , f ⟧
-  Lemma1c' P (NAT n) p with Lemma1e 1 (stacklem1 {q = acomp (NAT n)} p) 
-  ... | w' rewrite +comm (size` P) 1 | size`&+ {P} {LOADI n :: []} | +comm (size` P) 1 = insertAtEnd w' (⊢LOADI (stacklem2c P (LOADI n) []))
-  Lemma1c' P (VAR x) p with Lemma1e 1 (stacklem1 {q = acomp (VAR x)} p) 
-  ... | w' rewrite +comm (size` P) 1 | size`&+ {P} {LOAD x :: []} | +comm (size` P) 1 = insertAtEnd w' (⊢LOAD (stacklem2c P (LOAD x) []))
-  Lemma1c' P (m + n) {σ' = σ'} p rewrite &assoc P (acomp m) (acomp n & ADD :: []) | &assoc (P & acomp m) (acomp n) (ADD :: []) with Lemma1c' P m p
-  ... | w with Lemma1c' (P & (acomp m)) n w
-  ... | w' with stacklem1 {q = ADD :: []} w'
-  ... | w'' with Lemma1e 1 w''
-  ... | w''' rewrite size`&+ {(P & acomp m) & acomp n} {ADD :: []} | +comm (size` ((P & acomp m) & acomp n)) 1 | +comm (aexe m σ') (aexe n σ') = insertAtEnd {(((P & acomp m) & acomp n) & ADD :: [])} w''' (⊢ADD (stacklem2c ((P & acomp m) & acomp n) ADD []))
-  
-  Lemma1b' : ∀ a {σ s f} → (acomp a) ⊢⟦ config σ s (+ 0) , (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ (aexe a σ , s) (+ size` (acomp a)) , f ⟧
-  Lemma1b' (NAT n) = some (⊢LOADI refl) none
-  Lemma1b' (VAR x) = some (⊢LOAD refl) none
-  Lemma1b' (a + b) {σ} {s} {f} with stacklem1 {q = ADD :: []} (Lemma1e 1 (Lemma1c' (acomp a) b {σ} {s} {f} (Lemma1b' a)))
-  ... | w rewrite &assoc (acomp a) (acomp b) (ADD :: []) | size`&+ {acomp a & acomp b} {ADD :: []} | size`&+ {acomp a} {acomp b} | +comm (size` (acomp a) ℕ+ size` (acomp b)) 1 | +comm (aexe a σ) (aexe b σ) | sym (size`&+ {acomp a} {acomp b}) = insertAtEnd w (⊢ADD (stacklem2c (acomp a & acomp b) ADD []))
-
-
-  Lemma1 : ∀ {a x σ f σᴸᴸ} → ((acomp a) & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σᴸᴸ $ (+ suc (size` (acomp a))) , f ⟧  → σᴸᴸ ≡ ((x ≔ (aexe a σ)) ∷ σ)
-  Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w with Lemma1b' a {σ} {$} {suc f}
-  ... | w' rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) | Lemma1a a x σ σᴸᴸ $ f w' w = refl
-
-
-
 -----------------
 -- Final Proof --
 -----------------
 
 
-  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (+ (fᴴᴸ2ᴸᴸ I f ∸ f')) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
-  Lemma _ {f = 0} done none = refl
-  Lemma _ {f = 0} done (some () _)
+  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (size (compile I)) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
+  Lemma _ {f = 0} x w rewrite nofᴴ x | nofᴸ w = refl
   Lemma (SKIP) {f = suc f} (step () _)
-  Lemma (x ≔ a) {σ} {f = suc f} (step assign done) w rewrite +comm f (suc (size` (acomp a))) | +- (suc (size` (acomp a))) f | Lemma1 {a} w = refl
-{-
-  Lemma (x ≔ (NAT n)) {f = suc f} (step assign done) w rewrite +comm f 2 | +- 2 f with w
-  ... | some (⊢LOADI refl) (some (⊢STORE refl) none) = refl
-  ... | some (⊢LOADI refl) (some (⊢LOADI ()) _)
-  ... | some (⊢LOADI refl) (some (⊢LOAD ()) _)
-  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢LOADI ()) _))
-  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢LOAD ()) _))
-  ... | some (⊢LOADI refl) (some (⊢STORE refl) (some (⊢JMP ()) _))
-  ... | some (⊢LOADI refl) (some (⊢JMP ()) _)
-  ... | some (⊢LOAD ()) _
-  ... | some (⊢JMP ()) _
-  Lemma (x ≔ (VAR y)) {f = suc f} (step assign done) w rewrite +comm f 2 | +- 2 f with w
-  ... | some (⊢LOAD refl) (some (⊢STORE refl) none) = refl
-  ... | some (⊢LOAD refl) (some (⊢LOADI ()) _)
-  ... | some (⊢LOAD refl) (some (⊢LOAD ()) _)
-  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢LOADI ()) _))
-  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢LOAD ()) _))
-  ... | some (⊢LOAD refl) (some (⊢STORE refl) (some (⊢JMP ()) _))
-  ... | some (⊢LOAD refl) (some (⊢JMP ()) _)
-  ... | some (⊢LOADI ()) _
-  ... | some (⊢JMP ()) _
-  Lemma (x ≔ (a + b)) {σ} {f = suc f} (step assign done) w rewrite +comm f (suc (size` (acomp a & acomp b & ADD :: []))) | +- (suc (size` (acomp a & acomp b & ADD :: []))) f | Lemma1 {a + b} w = refl
--}
-  Lemma (WHILE b DO c) {σ} _ _ with bexe b σ
-  Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  _ | true  rewrite prf = {!!}
-  Lemma (WHILE b DO c) {f = suc f} (step (whilefalse prf) rest)  _ | false rewrite prf = {!!}
+  Lemma (x ≔ a) {σ} {f = suc f} (step assign rest) w rewrite skipseqσ rest | skipseqf rest | +comm f (suc (size` (acomp a))) | +- (suc (size` (acomp a))) f | size`&+ {acomp a} {STORE x :: []} | +comm (size` (acomp a)) 1 | Lemma1 {a} w = refl
+  Lemma (WHILE b DO c) {σ} {suc f}_ _ with inspect (bexe b σ)
+  Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  w | true with≡ _ rewrite prf = {!!}
+  Lemma (WHILE b DO c) {σ} {suc f} (step (whilefalse prf) rest)  w | false with≡ _ rewrite prf | skipseqσ rest | skipseqf rest with Lemma2 b (compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) {fᴴᴸ2ᴸᴸ (WHILE b DO c) (suc f)} {f} {$} {σ} prf
+  ... | z rewrite size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} = deterministic z w
+  Lemma (WHILE b DO c) {_} (step (whiletrue x) rest) w | false with≡ y rewrite y = ⊥-elim (bool⊥ x)
+  Lemma (WHILE b DO c) {_} {suc _} (step (whilefalse x) rest) w | true with≡ y rewrite x = ⊥-elim (bool⊥ y)
+
+{-with Lemma2 {c} {f} {$} {b} {σ} prf
+  ... | z with deterministic z w
+  ... | z' rewrite z' = refl-}
   
 
 
@@ -118,7 +67,7 @@ module Proofs.VerifiedCompilation where
 
 
 {-
-  
+   
 
 
   join* : ∀ {P Q f σ s σ' s' σ'' s''} → P ⊢⟦ config σ s (+ 0) , (size` P ℕ+ (size` Q ℕ+ f)) ⟧⇒*⟦ config σ' s' (size P) , (size` Q ℕ+ f) ⟧ → Q ⊢⟦ config σ' s' (+ 0) , (size` Q ℕ+ f) ⟧⇒*⟦ config σ'' s'' (size Q) , f ⟧ → (P & Q) ⊢⟦ config σ s (+ 0) , ((size` (P & Q)) ℕ+ f) ⟧⇒*⟦ config σ'' s'' (size (P & Q)) , f ⟧
