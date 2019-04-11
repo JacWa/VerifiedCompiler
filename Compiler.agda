@@ -1,15 +1,15 @@
 module Compiler where
 
   -- Data.* files are imported from agda-stdlib
-  open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
-  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_;_≟_)
+  open import Data.Nat renaming (_+_ to _ℕ+_) hiding (_≟_)
+  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_; _<_; _≟_)
   open import Agda.Builtin.Equality
   open import Data.String.Base
   open import Data.Bool
   open import Proofs.NatProofs
   open import Proofs.Basic
-  open import Misc.Base
-  open import Base.DataStructures
+  open import Misc.Base 
+  open import Base.DataStructures 
   open import Lang.Expr
   open import Lang.Stack
   open import Relation.Nullary
@@ -47,42 +47,3 @@ module Compiler where
   compile (WHILE b DO this) with compile this
   ... | body with bcomp b false (size body z+ + 1)
   ... | control = control & body & (JMP (neg (size control z+ size body z+ + 1) ) :: [])
-
-
-{-
-  {-# TERMINATING #-}
-  fᴴᴸ2ᴸᴸ' : IExp → ℕ × ℕ × State → ℕ × ℕ × State
-  fᴴᴸ2ᴸᴸ' _        (0 , fᴸᴸ , σ)         = (0 , fᴸᴸ , σ)
-  fᴴᴸ2ᴸᴸ' SKIP     (suc fᴴᴸ , fᴸᴸ , σ) = (fᴴᴸ , fᴸᴸ , σ)
-  fᴴᴸ2ᴸᴸ' (x ≔ a) (suc fᴴᴸ , fᴸᴸ , σ) = (fᴴᴸ , suc (fᴸᴸ ℕ+ size` (acomp a)) , ((x ≔ (aexe a σ)) ∷ σ))
-  fᴴᴸ2ᴸᴸ' (P ⋯ Q) (suc fᴴᴸ , fᴸᴸ , σ) = fᴴᴸ2ᴸᴸ' Q (fᴴᴸ2ᴸᴸ' P (suc fᴴᴸ , fᴸᴸ , σ))
-  fᴴᴸ2ᴸᴸ' (IF b THEN P ELSE Q) ((suc fᴴᴸ) , fᴸᴸ , σ) with bexe b σ
-  ... | true  = fᴴᴸ2ᴸᴸ' P (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (+ 1)))) , σ)
-  ... | false = fᴴᴸ2ᴸᴸ' Q (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (+ 1)))) , σ)
-  fᴴᴸ2ᴸᴸ' (WHILE b DO c) (suc fᴴᴸ , fᴸᴸ , σ) with bexe b σ
-  ... | true  = fᴴᴸ2ᴸᴸ' (c ⋯ (WHILE b DO c)) (fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ + 1))) , σ)
-  ... | false = fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ + 1))) , σ
--}
-
-  data F : Set where
-    base : IExp → ℕ → ℕ → State → F
-
-  fᴴᴸ2ᴸᴸ' : IExp × ℕ × ℕ × State → IExp × ℕ × ℕ × State
-  fᴴᴸ2ᴸᴸ' (I , 0 , fᴸᴸ , σ)         = (I , 0 , fᴸᴸ , σ)
-  fᴴᴸ2ᴸᴸ' (SKIP , suc fᴴᴸ , fᴸᴸ , σ) = (SKIP , fᴴᴸ , fᴸᴸ , σ)
-  fᴴᴸ2ᴸᴸ' ((x ≔ a) , suc fᴴᴸ , fᴸᴸ , σ) = (SKIP , fᴴᴸ , suc (fᴸᴸ ℕ+ size` (acomp a)) , ((x ≔ (aexe a σ)) ∷ σ))
-  fᴴᴸ2ᴸᴸ' ((SKIP ⋯ Q) , suc fᴴᴸ , fᴸᴸ , σ) = (Q , fᴴᴸ , fᴸᴸ , σ)
-  fᴴᴸ2ᴸᴸ' ((P ⋯ Q) , suc fᴴᴸ , fᴸᴸ , σ) with fᴴᴸ2ᴸᴸ' (P , suc fᴴᴸ , fᴸᴸ , σ)
-  ... | (P' , fᴴᴸ' , fᴸᴸ' , σ') = fᴴᴸ2ᴸᴸ' ((P' ⋯ Q) , fᴴᴸ' , fᴸᴸ' , σ')
-  fᴴᴸ2ᴸᴸ' ((IF b THEN P ELSE Q) , suc fᴴᴸ , fᴸᴸ , σ) with bexe b σ
-  ... | true  = fᴴᴸ2ᴸᴸ' (P , fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (+ 1)))) , σ)
-  ... | false = fᴴᴸ2ᴸᴸ' (Q , fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile P) z+ (+ 1)))) , σ)
-  fᴴᴸ2ᴸᴸ' ((WHILE b DO c) , suc fᴴᴸ , fᴸᴸ , σ) with bexe b σ
-  ... | true  = fᴴᴸ2ᴸᴸ' ((c ⋯ (WHILE b DO c)) , fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ + 1))) , σ)
-  ... | false = SKIP , fᴴᴸ , (fᴸᴸ ℕ+ size` (bcomp b false (size (compile c) z+ + 1))) , σ
-
-{-
-  fᴴᴸ2ᴸᴸ : IExp → ℕ → ℕ
-  fᴴᴸ2ᴸᴸ I fᴴᴸ with fᴴᴸ2ᴸᴸ' I (fᴴᴸ , 0 , ⟦⟧)
-  ... | fᴴᴸ' , fᴸᴸ , _ = fᴴᴸ' ℕ+ fᴸᴸ
--}

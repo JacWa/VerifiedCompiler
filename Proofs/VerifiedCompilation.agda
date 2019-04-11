@@ -4,6 +4,7 @@ module Proofs.VerifiedCompilation where
   open import Proofs.Expr
   open import Proofs.Stack
   open import Proofs.ArithSemantics
+  open import Proofs.Fuel
 
   open import Lang.Expr
   open import Lang.Stack
@@ -45,14 +46,14 @@ module Proofs.VerifiedCompilation where
 -----------------
 
 
-  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧ → compile I ⊢⟦ config σ $ (+ 0) , fᴴᴸ2ᴸᴸ I f ⟧⇒*⟦ config σᴸᴸ $ (size (compile I)) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
+  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → (semᴴᴸ : ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧) → compile I ⊢⟦ config σ $ (+ 0) , fuelLL I f semᴴᴸ ⟧⇒*⟦ config σᴸᴸ $ (size (compile I)) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
   Lemma _ {f = 0} x w rewrite nofᴴ x | nofᴸ w = refl
   Lemma (SKIP) {f = suc f} (step () _)
-  Lemma (x ≔ a) {σ} {f = suc f} (step assign rest) w rewrite skipseqσ rest | skipseqf rest | +comm f (suc (size` (acomp a))) | +- (suc (size` (acomp a))) f | size`&+ {acomp a} {STORE x :: []} | +comm (size` (acomp a)) 1 | Lemma1 {a} w = refl
+  Lemma (x ≔ a) {σ} {f = suc f} (step assign rest) w rewrite fuelSKIP f {rest = rest} | skipseqσ rest | skipseqf rest | size`&+ {acomp a} {STORE x :: []} | +comm (size` (acomp a)) 1 = Lemma1 {a} w 
   Lemma (WHILE b DO c) {σ} {suc f}_ _ with inspect (bexe b σ)
   Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  w | true with≡ _ rewrite prf = {!!}
-  Lemma (WHILE b DO c) {σ} {suc f} (step (whilefalse prf) rest)  w | false with≡ _ rewrite prf | skipseqσ rest | skipseqf rest with Lemma2 b (compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) {fᴴᴸ2ᴸᴸ (WHILE b DO c) (suc f)} {f} {$} {σ} prf
-  ... | z rewrite size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} = deterministic z w
+  Lemma (WHILE b DO c) {σ} {suc f} (step (whilefalse prf) rest)  w | false with≡ _ rewrite prf | fuelSKIP f {rest = rest} | skipseqσ rest | skipseqf rest with Lemma2 b (compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) {fuelLL (WHILE b DO c) (suc f) (step (whilefalse prf) rest)} {f} {$} {σ} prf
+  ... | z rewrite fuelSKIP f {rest = rest} | size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} = deterministic z w
   Lemma (WHILE b DO c) {_} (step (whiletrue x) rest) w | false with≡ y rewrite y = ⊥-elim (bool⊥ x)
   Lemma (WHILE b DO c) {_} {suc _} (step (whilefalse x) rest) w | true with≡ y rewrite x = ⊥-elim (bool⊥ y)
 

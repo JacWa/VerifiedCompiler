@@ -163,3 +163,4 @@ module Proofs.Expr where
   nofᴴf : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦*⟦ σ' , I' , f' ⟧ → f' ≡ 0
   nofᴴf done = refl
   nofᴴf (step x rest) rewrite nofᴴ' x | nofᴴ'f x = nofᴴf rest
+

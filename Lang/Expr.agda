@@ -33,7 +33,6 @@ module Lang.Expr where
     IF_THEN_ELSE_ : BExp → IExp → IExp → IExp
     WHILE_DO_     : BExp → IExp → IExp
 
-
   -- Execute arithmetic expressions
   aexe : AExp → State → ℕ
   aexe (NAT val)  _     = val
