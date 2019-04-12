@@ -3,10 +3,11 @@ module Proofs.Stack where
   open import Lang.Stack
   open import Base.DataStructures
   open import Data.Bool
-  open import Data.Integer.Properties
+  open import Data.Integer.Properties using (+-identityʳ; +-comm; +-assoc)
+  open import Data.Nat.Properties using (≤-refl)
   open import Misc.Base
-  open import Agda.Builtin.Nat renaming (Nat to ℕ)
-  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_)
+  open import Agda.Builtin.Nat renaming (Nat to ℕ) hiding (_<_)
+  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_; _<_)
   open import Agda.Builtin.Equality
   open import Data.Star
   open import Data.Nat.Base
@@ -89,6 +90,37 @@ module Proofs.Stack where
   insertAtEnd : ∀ {p c f c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧
   insertAtEnd none w = some w none
   insertAtEnd (some one rest) w = some one (insertAtEnd rest w)
+
+  insertAtEnd* : ∀ {p c f c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒*⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧
+  insertAtEnd* w none = w
+  insertAtEnd* w (some one rest) = insertAtEnd* (insertAtEnd w one) rest
+
+  fdecone : ∀ {p c f c' f'} → p ⊢⟦ c , (suc f) ⟧⇒⟦ c' , f' ⟧ → f' ≡ f
+  fdecone (⊢LOADI x) = refl
+  fdecone (⊢LOAD x₁) = refl
+  fdecone (⊢STORE x₁) = refl
+  fdecone (⊢ADD x) = refl
+  fdecone (⊢JMP x) = refl
+  fdecone (⊢JMPLESSfalse x x₁) = refl
+  fdecone (⊢JMPLESStrue x x₁) = refl
+  fdecone (⊢JMPGEtrue x x₁) = refl
+  fdecone (⊢JMPGEfalse x x₁) = refl
+  
+  fdecone' : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → f' < f
+  fdecone' (⊢LOADI x)           = ≤-refl
+  fdecone' (⊢LOAD x₁)           = ≤-refl
+  fdecone' (⊢STORE x₁)          = ≤-refl
+  fdecone' (⊢ADD x)             = ≤-refl
+  fdecone' (⊢JMP x)             = ≤-refl 
+  fdecone' (⊢JMPLESSfalse x x₁) = ≤-refl 
+  fdecone' (⊢JMPLESStrue x x₁)  = ≤-refl
+  fdecone' (⊢JMPGEtrue x x₁)    = ≤-refl
+  fdecone' (⊢JMPGEfalse x x₁)   = ≤-refl
+
+  fdec : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → f' ≤ f
+  fdec none = ≤=
+  fdec {f = 0} (some () rest)
+  fdec {f = suc f} (some one rest) rewrite fdecone one = ≤s f (fdec rest)
 
 
   stacklem1a : ∀ p q {pc a} → p ፦ pc ≡ just a → p ፦ pc ≡ (p & q) ፦ pc
@@ -186,22 +218,6 @@ module Proofs.Stack where
   pclem1 {[]} {q} {pc} _ rewrite +-identityʳ pc = refl
   pclem1 {x :: xs} {q} {+ n} prf rewrite +-comm (+ n) (size (x :: xs)) | +comm (size` xs) n = pclem1 {xs} {q} {+ n} prf
   pclem1 {x :: xs} {q} { -[1+ n ]} ()
-
-  fdecone : ∀ {p c f c' f'} → p ⊢⟦ c , (suc f) ⟧⇒⟦ c' , f' ⟧ → f' ≡ f
-  fdecone (⊢LOADI x) = refl
-  fdecone (⊢LOAD x₁) = refl
-  fdecone (⊢STORE x₁) = refl
-  fdecone (⊢ADD x) = refl
-  fdecone (⊢JMP x) = refl
-  fdecone (⊢JMPLESSfalse x x₁) = refl
-  fdecone (⊢JMPLESStrue x x₁) = refl
-  fdecone (⊢JMPGEtrue x x₁) = refl
-  fdecone (⊢JMPGEfalse x x₁) = refl
-
-  fdec : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → f' ≤ f
-  fdec none = ≤=
-  fdec {f = 0} (some () rest)
-  fdec {f = suc f} (some one rest) rewrite fdecone one = ≤s f (fdec rest)
 
   nofᴸ : ∀ {p f σ s pc σ' s' pc'} → p ⊢⟦ config σ s pc , 0 ⟧⇒*⟦ config σ' s' pc' , f ⟧ →  σ ≡ σ'
   nofᴸ none = refl
@@ -522,7 +538,7 @@ module Proofs.Stack where
   ... | ()
 
 
-
+  
 
   detstep : ∀ {x xs c f c' f' c'' f''} → (x :: xs) ⊢⟦ c , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ c , suc f ⟧⇒⟦ c'' , f'' ⟧ → c'' ≡ c'
   detstep {x} {xs} {config σ s pc} sem1 sem2 with inspect ((x :: xs) ፦ pc)
@@ -535,6 +551,8 @@ module Proofs.Stack where
   detstep {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMP x₁ = detstep'justjmp sem1 sem2 prf
   detstep {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMPLESS x₁ = detstep'justjmpless sem1 sem2 prf
   detstep {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMPGE x₁ = detstep'justjmpge sem1 sem2 prf
+
+
 
   deterministic : ∀ {p c f σ' σ'' s' pc' f'} → p ⊢⟦ c , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ config σ'' s' pc' , f' ⟧ → σ'' ≡ σ'
   deterministic {[]} {config σ s pc} sem1 sem2 rewrite nothing≡σ sem1 | nothing≡σ sem2 = refl
@@ -583,89 +601,335 @@ module Proofs.Stack where
   -}
 
 
+  addF : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧
+  addF n (⊢LOADI x) = ⊢LOADI x
+  addF n (⊢LOAD x₁) = ⊢LOAD x₁
+  addF n (⊢STORE x₁) = ⊢STORE x₁
+  addF n (⊢ADD x) = ⊢ADD x
+  addF n (⊢JMP x) = ⊢JMP x
+  addF n (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
+  addF n (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
+  addF n (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
+  addF n (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
+
+  addF* : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧
+  addF* n none = none
+  addF* n (some one rest) = some (addF n one) (addF* n rest)
+
+  sucF* : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧
+  sucF* {f = f} {f' = f'} x rewrite +comm 1 f | +comm 1 f' = addF* 1 x
+
+  detstep' : ∀ {p f c c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧ → c'' ≡ c'
+  detstep' {[]}  (⊢LOADI ()) sem2 
+  detstep' {[]}  (⊢LOAD ()) sem2
+  detstep' {[]}  (⊢STORE ()) sem2
+  detstep' {[]}  (⊢ADD ()) sem2
+  detstep' {[]}  (⊢JMP ()) sem2
+  detstep' {[]}  (⊢JMPLESSfalse () x₁) sem2
+  detstep' {[]}  (⊢JMPLESStrue () x₁) sem2
+  detstep' {[]}  (⊢JMPGEtrue () x₁) sem2
+  detstep' {[]}  (⊢JMPGEfalse () x₁) sem2
+  detstep' {x :: xs} {0} sem1 sem2 with fdecone' sem1
+  ... | ()
+  detstep' {x :: xs} {suc f} sem1 sem2 = detstep sem1 sem2
 
 
+  detstep'justloadi' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (LOADI n) → f'' ≡ f'
+  detstep'justloadi' (⊢LOADI x) (⊢LOADI y) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite LOADI≡ w | LOADI≡ w' = refl
+  detstep'justloadi' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justloadi' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justloadi' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justloadi' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'justloadi' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justloadi' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
 
-
-
-
-
-
-{--
-{--  &:: : ∀ {i is p'} → (i :: is) & p' ≡ i :: (is & p')
-  &:: = refl
+  detstep'justload' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (LOAD n) → f'' ≡ f'
+  detstep'justload' (⊢LOAD x) (⊢LOAD y) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite LOAD≡ w | LOAD≡ w' = refl
+  detstep'justload' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justload' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justload' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justload' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'justload' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justload' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
   
-  redinst : ∀ i is n ub → inst (i :: is) (+ (suc n)) (+≤+ z≤n) (+≤+ (s≤s ub)) ≡ inst is (+ n) (+≤+ z≤n) (+≤+ ub)
-  redinst i is n ub = refl --}
+  detstep'justadd' :  ∀ {x xs σ s pc f c' f' c'' f''} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just ADD → f'' ≡ f'
+  detstep'justadd' (⊢ADD x) (⊢ADD y) prf = refl
+  detstep'justadd' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justadd' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justadd' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justadd' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | () 
+  detstep'justadd' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justadd' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
 
-  addRightPC : ∀ {p q pc ub' lb} → (ub : pc < (size p) `ℤ`) → inst p pc lb ub ≡ inst (p & q) pc lb ub'
-  addRightPC {[]} {q} {+ n} (+≤+ ())
-  addRightPC {pc = negsuc n} {lb = ()}
-  addRightPC {i :: is} {q} {+ 0} ub = refl
-  addRightPC {i :: is} {q} {+ (suc n)} {+≤+ (s≤s ub')} (+≤+ (s≤s ub)) = addRightPC {is} {q} {+ n} (+≤+ ub)
-
-  {--addRight : ∀ {p c c'} q → p ⊢ c ⇒ c' → (p & q) ⊢ c ⇒ c'
-  addRight {p} [] rewrite &[] {p} = λ z → z
-  addRight {p} (i :: []) = {!!}
-
-
-  addRight* : ∀ {p c c'} q → p ⊢ c ⇒* c' → (p & q) ⊢ c ⇒* c'
-  addRight* q (none p) = none p
-  addRight* q (some one rest) = {!!}--}
-
-
-  p<+ : ∀ {q y p} → (+ 0) ≤ (size q) `ℤ` → y < (size p) `ℤ` → y < (size (p & q)) `ℤ`
-  p<+ {q} {y} {p} (+≤+ z≤n) ub rewrite size&+ p q = ℤ<+s {+ (size` q)} {y} {+ (size` p)} (+≤+ z≤n) ub
-
-  i≡p : ∀ p q pc lb ub ub' i → i ≡ inst p pc lb ub → i ≡ inst (p & q) pc lb ub'
-  i≡p p q pc lb ub ub' i prf rewrite prf = addRightPC {p} {q} {pc} {ub'} {lb} ub
-
-  add⊢Right :  ∀ {p q c c'} → p ⊢ c ⇒ c' → (p & q) ⊢ c ⇒ c'
-  add⊢Right {p} {[]} rewrite &[] {p} = λ z → z
-  add⊢Right {p} {q} (exec1 {p} {c} i lb ub {ieq} {vh}) = exec1 i lb (p<+ (+≤+ z≤n) ub) {i≡p p q (pc c) lb ub (p<+ (+≤+ z≤n) ub) i ieq} {vh}
-
-  add⊢Right* : ∀ {p q c c'} → p ⊢ c ⇒* c' → (p & q) ⊢ c ⇒* c'
-  add⊢Right* 0r = 0r
-  add⊢Right* (step one then) = step (add⊢Right one) (add⊢Right* then) 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--------------
-{--
-  data ExeStep (p : Prog)(c : Config)(c' : Config) : Set where
-    step : {i : Inst}{l1 : Lem1 i (height (stack c))}{l2 : Lem2 (pc c) p}{defi : i ≡ inst p (pc c) {l2}}{defc' : c' ≡ iexe i c l1 } → ExeStep p c c'
-
-  data Step {A : Set}(r : A → A)(x : A) : A → Set where
-    stp : Step r x (r x)
+  detstep'juststore' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (STORE n) → f'' ≡ f'
+  detstep'juststore' (⊢STORE x) (⊢STORE y) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite STORE≡ w | STORE≡ w' = refl
+  detstep'juststore' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'juststore' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'juststore' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | () 
+  detstep'juststore' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'juststore' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'juststore' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
   
-  data Star {A : Set}(r : A → A) : A → A → Set where
-    none : {x : A} → Star r x x
-    some : {x y z : A} → Step r x y → Star r y z → Star r x z
+  detstep'justjmp' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (JMP n) → f'' ≡ f'
+  detstep'justjmp' (⊢JMP x) (⊢JMP y) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite JMP≡ w | JMP≡ w' = refl
+  detstep'justjmp' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmp' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmp' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmp' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmp' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmp' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
 
   
-  data ⦅_,_⦆↦_ : Prog → Config → Config → Set where
-    base : ∀ {p c}{ivpc : (size p) ≤ (pc c) `ℤ`} → ⦅ p , c ⦆↦ c
-    trans : ∀ {p c c' c''} → ExeStep p c c' → ⦅ p , c' ⦆↦ c'' → ⦅ p , c ⦆↦ c''
+  detstep'justjmpge' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (JMPGE n) → f'' ≡ f'
+  detstep'justjmpge' (⊢JMPGEtrue x _) (⊢JMPGEtrue y _) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite JMPGE≡ w | JMPGE≡ w' = refl
+  detstep'justjmpge' (⊢JMPGEfalse x _) (⊢JMPGEfalse y _) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite JMPGE≡ w | JMPGE≡ w' = refl
+  detstep'justjmpge' (⊢JMPGEfalse _ lt) (⊢JMPGEtrue _ ge) prf with ≤trans lt ge
+  ... | w = ⊥-elim (s≤→⊥ w)
+  detstep'justjmpge' (⊢JMPGEtrue _ ge) (⊢JMPGEfalse _ lt) prf with ≤trans lt ge
+  ... | w = ⊥-elim (s≤→⊥ w)
+  detstep'justjmpge' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmpge' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmpge' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' (⊢JMPLESSfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' (⊢JMPLESStrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmpge' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmpge' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' sem1 (⊢JMPLESSfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' sem1 (⊢JMPLESStrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpge' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
+  
+  detstep'justjmpless' :  ∀ {x xs σ s pc f c' f' c'' f'' n} → (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ config σ s pc , suc f ⟧⇒⟦ c'' , f'' ⟧ → (x :: xs) ፦ pc ≡ just (JMPLESS n) → f'' ≡ f'
+  detstep'justjmpless' (⊢JMPLESStrue x _) (⊢JMPLESStrue y _) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite JMPLESS≡ w | JMPLESS≡ w' = refl
+  detstep'justjmpless' (⊢JMPLESSfalse x _) (⊢JMPLESSfalse y _) prf rewrite prf with  sym (just≡ x) | sym (just≡ y)
+  ... | w | w' rewrite JMPLESS≡ w | JMPLESS≡ w' = refl
+  detstep'justjmpless' (⊢JMPLESSfalse _ ge) (⊢JMPLESStrue _ lt) prf with ≤trans lt ge
+  ... | w = ⊥-elim (s≤→⊥ w)
+  detstep'justjmpless' (⊢JMPLESStrue _ lt) (⊢JMPLESSfalse _ ge) prf with ≤trans lt ge
+  ... | w = ⊥-elim (s≤→⊥ w)
+  detstep'justjmpless' (⊢LOAD x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' (⊢STORE x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmpless' (⊢ADD x) sem2 prf rewrite prf with x
+  ... | () 
+  detstep'justjmpless' (⊢LOADI x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' (⊢JMPGEfalse x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' (⊢JMPGEtrue x _) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' (⊢JMP x) sem2 prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' sem1 (⊢LOAD x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' sem1 (⊢STORE x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmpless' sem1 (⊢ADD x) prf rewrite prf with x
+  ... | () 
+  detstep'justjmpless' sem1 (⊢LOADI x) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' sem1 (⊢JMPGEfalse x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' sem1 (⊢JMPGEtrue x _) prf rewrite prf with x
+  ... | ()
+  detstep'justjmpless' sem1 (⊢JMP x) prf rewrite prf with x
+  ... | ()
 
---}
---}
+
+  
+
+  detstep'f : ∀ {x xs c f c' f' c'' f''} → (x :: xs) ⊢⟦ c , suc f ⟧⇒⟦ c' , f' ⟧ →  (x :: xs) ⊢⟦ c , suc f ⟧⇒⟦ c'' , f'' ⟧ → f'' ≡ f'
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 with inspect ((x :: xs) ፦ pc)
+  ... | nothing with≡ prf = ⊥-elim (detstep'nothing sem1 prf)
+  ... | (just i) with≡ prf with i
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | LOADI x₁ = detstep'justloadi' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | LOAD x₁ = detstep'justload' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | ADD = detstep'justadd' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | STORE x₁ = detstep'juststore' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMP x₁ = detstep'justjmp' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMPLESS x₁ = detstep'justjmpless' sem1 sem2 prf
+  detstep'f {x} {xs} {config σ s pc} sem1 sem2 | just i with≡ prf | JMPGE x₁ = detstep'justjmpge' sem1 sem2 prf
+
+  detstep'f' : ∀ {p f c c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧ → f'' ≡ f'
+  detstep'f' {[]}  (⊢LOADI ()) sem2 
+  detstep'f' {[]}  (⊢LOAD ()) sem2
+  detstep'f' {[]}  (⊢STORE ()) sem2
+  detstep'f' {[]}  (⊢ADD ()) sem2
+  detstep'f' {[]}  (⊢JMP ()) sem2
+  detstep'f' {[]}  (⊢JMPLESSfalse () x₁) sem2
+  detstep'f' {[]}  (⊢JMPLESStrue () x₁) sem2
+  detstep'f' {[]}  (⊢JMPGEtrue () x₁) sem2
+  detstep'f' {[]}  (⊢JMPGEfalse () x₁) sem2
+  detstep'f' {x :: xs} {0} sem1 sem2 with fdecone' sem1
+  ... | ()
+  detstep'f' {x :: xs} {suc f} sem1 sem2 = detstep'f sem1 sem2
+
+  spliton' : ∀ {p c f c' f' c'' f''} → ¬ f ≡ f'' → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒*⟦ c'' , f'' ⟧
+  spliton' w none x' = ⊥-elim (w refl)
+  spliton' _ (some x w) x' rewrite detstep' x' x | detstep'f' x' x = w
+
+
+  split_on_⊢ : ∀ {p c f c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → f'' ≤ f' → p ⊢⟦ c' , f' ⟧⇒*⟦ c'' , f'' ⟧
+  split w on none ⊢ _ = w
+  split none on (some one rest) ⊢ w with ≤trans (≤trans (s≤s (fdec rest)) (fdecone' one)) w
+  ... | z = ⊥-elim (s≤→⊥ z)
+  split (some one' rest') on (some one rest) ⊢ w with ≤trans (s≤s (fdec rest')) (fdecone' one')
+  ... | z = split spliton' (s≤→¬≡ z) (some one' rest') one on rest ⊢ w
+
+--≤trans (s≤s (fdec rest')) (fdecone' one')
+--  ... | w = split (spliton' (s≤→¬≡ w) (some one' rest') one) on rest

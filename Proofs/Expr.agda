@@ -121,7 +121,7 @@ module Proofs.Expr where
 
   data ⟦_,_,_⟧↦*⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
 
-    done : ∀ {σ f} → ⟦ σ , SKIP , f ⟧↦*⟦ σ , SKIP , f ⟧
+    done : ∀ {σ f I} → ⟦ σ , I , f ⟧↦*⟦ σ , I , f ⟧
     
     step : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ →
                                             --------------------------------------------------------------------------
@@ -163,4 +163,30 @@ module Proofs.Expr where
   nofᴴf : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦*⟦ σ' , I' , f' ⟧ → f' ≡ 0
   nofᴴf done = refl
   nofᴴf (step x rest) rewrite nofᴴ' x | nofᴴ'f x = nofᴴf rest
+
+
+  explem1a : ∀ {I σ f σ' I' f' I''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ , I ⋯ I'' , f ⟧↦*⟦ σ' , I' ⋯ I'' , f' ⟧
+  explem1a {SKIP} x = step (seqstep x) done
+  explem1a {x₁ ≔ x₂} x = step (seqstep x) done
+  explem1a {I ⋯ I₁} x = step (seqstep x) done
+  explem1a {IF x₁ THEN I ELSE I₁} x = step (seqstep x) done
+  explem1a {WHILE x₁ DO I} x = step (seqstep x) done
+
+  explem1 : ∀ {I σ f σ' I' f' I''} → ⟦ σ , I , f ⟧↦*⟦ σ' , I' , f' ⟧ → ⟦ σ , I ⋯ I'' , f ⟧↦*⟦ σ' , I' ⋯ I'' , f' ⟧
+  explem1 done = done
+  explem1 {SKIP} (step (empty x) _) = ⊥-elim (x refl)
+  explem1 {_ ≔ _} (step (empty x) done) = step (seqstep (empty x)) done
+  explem1 {_ ≔ _} (step (empty _) (step (empty x) _)) = ⊥-elim (x refl)
+  explem1 {x ≔ a} (step assign rest) = step (seqstep assign) (explem1 rest)
+  explem1 {P ⋯ Q} (step one rest) = step (seqstep one) (explem1 rest)
+  explem1 {IF x₂ THEN I ELSE I₁} (step x x₁) = step (seqstep x) (explem1 x₁)
+  explem1 {WHILE x₂ DO I} (step x x₁) = step (seqstep x) (explem1 x₁)
+
+  explem2a : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦*⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦⟦ σ'' , I'' , f'' ⟧ → ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
+  explem2a done stp = step stp done
+  explem2a (step one rest) stp = step one (explem2a rest stp)
+
+  explem2 : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦*⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ → ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
+  explem2 x done = x
+  explem2 x (step one rest) = explem2 (explem2a x one) rest
 

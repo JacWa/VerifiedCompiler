@@ -11,7 +11,7 @@ module Proofs.Fuel where
   open import Compiler
   
 
-       
+--  fuelLLb : (b : BExp)(σ : State) → ℕ
  
   fuelLL' : ∀ P {f σ σ' Q f'} → ⟦ σ , P , suc f ⟧↦⟦ σ' , Q , f' ⟧ → ℕ
   fuelLL' SKIP ()

@@ -7,6 +7,7 @@ module Misc.Base where
   open import Data.Integer hiding (_≤_; _≟_) renaming (_+_ to _z+_; suc to zuc)
   open import Relation.Binary
   open import Data.Nat.Base using (_≤_; _≟_)
+  open import Data.Bool using (not)
   open import Proofs.NatProofs
   open import Proofs.Basic
   open import Relation.Nullary
@@ -47,6 +48,14 @@ module Misc.Base where
   s≤→⊥ : ∀ {x} → suc x ≤ x → ⊥
   s≤→⊥ {0} ()
   s≤→⊥ {suc x} (_≤_.s≤s p) = s≤→⊥ p
+
+  s≡≤→⊥ : ∀ {x x'} → suc x ≡ suc x' → suc x' ≤ x → ⊥
+  s≡≤→⊥ eq ineq rewrite sym eq = s≤→⊥ ineq
+
+  s≤→¬≡ : ∀ {x x'} → suc x' ≤ x → ¬ x ≡ x'
+  s≤→¬≡ {zero} {x'} ()
+  s≤→¬≡ {suc x} {zero} (_≤_.s≤s ineq) = λ ()
+  s≤→¬≡ {suc x} {suc x'} (_≤_.s≤s ineq) = λ x → s≡≤→⊥ x ineq
 
   _n-_ : ℕ → ℕ → ℤ
   x       n- 0       = + x
@@ -235,3 +244,7 @@ module Misc.Base where
 
   bool⊥ : false ≡ true → ⊥
   bool⊥ ()
+
+  notfalse : ∀ {b} → not b ≡ false → b ≡ true
+  notfalse {false} ()
+  notfalse {true} a = refl
