@@ -57,6 +57,16 @@ module Misc.Base where
   s≤→¬≡ {suc x} {zero} (_≤_.s≤s ineq) = λ ()
   s≤→¬≡ {suc x} {suc x'} (_≤_.s≤s ineq) = λ x → s≡≤→⊥ x ineq
 
+  <-false : ∀ {a b} → (a Agda.Builtin.Nat.< b) ≡ false → b ≤ a
+  <-false {a} {0} x = _≤_.z≤n
+  <-false {0} {suc b} ()
+  <-false {suc a} {suc b} x = _≤_.s≤s (<-false x)
+
+  <-true : ∀ {a b} → (a Agda.Builtin.Nat.< b) ≡ true → suc a ≤ b
+  <-true {a} {0} ()
+  <-true {0} {suc b} prf = _≤_.s≤s _≤_.z≤n
+  <-true {suc a} {suc b} prf = _≤_.s≤s (<-true prf)
+
   _n-_ : ℕ → ℕ → ℤ
   x       n- 0       = + x
   0       n- (suc y) = ℤ.negsuc y
@@ -228,7 +238,10 @@ module Misc.Base where
   zucpn-pn≡1 : ∀ n → (zuc (+ n)) z- (+ n) ≡ + 1
   zucpn-pn≡1 0 = refl
   zucpn-pn≡1 (suc n) rewrite zucpn-pn≡1 n = sucn-n≡1 n
-
+{-
+  zsucswap : ∀ a b c → (+ suc a z+ b z+ + c) ≡ (+ suc (a + c) z+ b)
+  zsucswap a b c = {!!}
+-}
   +≡ : ∀ x y →  + x ≡ + y → x ≡ y
   +≡ x y refl = refl
 
@@ -237,14 +250,3 @@ module Misc.Base where
 
   +suc : ∀ x y → + suc x ≡ + suc y → + x ≡ + y
   +suc x y refl = refl
-
-
-  bool⊥' : true ≡ false → ⊥
-  bool⊥' ()
-
-  bool⊥ : false ≡ true → ⊥
-  bool⊥ ()
-
-  notfalse : ∀ {b} → not b ≡ false → b ≡ true
-  notfalse {false} ()
-  notfalse {true} a = refl

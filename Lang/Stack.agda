@@ -133,6 +133,17 @@ module Lang.Stack where
   size`&3= : ∀ p q r → size` (p & q & r) ≡ size` p ℕ+ (size` q ℕ+ size` r)
   size`&3= p q r rewrite sym (size`&= q r) | sym (size`&= p (q & r)) = refl
 
+  size`trans : ∀ P Q → size` (P & Q) ≡ size` (Q & P)
+  size`trans P Q rewrite size`&+ {P} {Q} | +comm (size` P) (size` Q) | size`&+ {Q} {P} = refl
+
+  
+  &assoc' : ∀ P Q R → P & Q & R ≡ (P & Q) & R
+  &assoc' [] Q R = refl
+  &assoc' (i :: is) Q R rewrite &assoc' is Q R = refl
+  
+  size`&+3/4 : ∀ P Q R S → size` (P & Q & R & S) ≡ size` R ℕ+ size` (P & Q & S)
+  size`&+3/4 P Q R S rewrite &assoc' P Q (R & S) | size`&+ {P & Q} {R & S} | size`&+ {R} {S} | +assoc (size` (P & Q)) (size` R) (size` S) | +comm (size` (P & Q)) (size` R) | sym (+assoc (size` R) (size` (P & Q)) (size` S)) | sym (size`&+ {P & Q} {S}) | &assoc' P Q S = refl
+
   
   _፦_ : Prog → ℤ → Maybe Inst  
   []        ፦ _             = nothing

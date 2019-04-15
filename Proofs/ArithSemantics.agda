@@ -11,6 +11,7 @@ module Proofs.ArithSemantics where
 
   open import Data.Nat renaming (_+_ to _ℕ+_) hiding (_≟_)
   open import Data.Integer renaming (_+_ to _ℤ+_; suc to zuc) hiding (_≟_)
+  open import Data.Maybe using (just)
 
   open import Base.DataStructures
   open import Misc.Base
@@ -64,4 +65,30 @@ module Proofs.ArithSemantics where
   Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w with Lemma1b' a {σ} {$} {suc f}
   ... | w' rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) | Lemma1a a x σ σᴸᴸ $ f w' w = refl
 
+
+  Lemma1' : ∀ {a rest σ s f} → ((acomp a) & rest) ⊢⟦ config σ s (+ 0) , size` (acomp a & rest) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , size` rest ℕ+ f ⟧
+  Lemma1' {a} {rest} {f = f} rewrite size`&+ {acomp a} {rest} | sym (+assoc (size` (acomp a)) (size` rest) (f)) = stacklem1 (Lemma1b' a)
+
+
+  mutual
+    ArithExec : ∀ {a this that σ s f} → (this & (acomp a) & that) ⊢⟦ config σ s (size this) , size` (acomp a) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a & this)) , f ⟧
+    ArithExec {NAT x} {this} {that} = some (⊢LOADI (stacklem2c this (LOADI x) (that))) none
+    ArithExec {VAR x} {this} {that} = some (⊢LOAD (stacklem2c this (LOAD x) (that))) none
+    ArithExec {a + b} {this} {that} {σ} {f = f} rewrite sym (&assoc (acomp a) (acomp b & ADD :: []) (that)) | +comm (aexe a σ) (aexe b σ) | ArithExecAux2' {a} {b} {this} | size`&+ {acomp a} {acomp b & ADD :: []} | sym (+assoc (size` (acomp a)) (size` (acomp b & ADD :: [])) f) = insertAtEnd* (ArithExec {a}) (insertAtEnd (ArithExecAux1 {this} {a} {b}) (⊢ADD (ArithExecAux3 {this} {a} {b})))
+
+    ArithExecAux1 : ∀ {this a b that σ s f} → (this & acomp a & (acomp b & ADD :: []) & that) ⊢⟦ config σ (aexe a σ , s) (size (acomp a & this)) , size` (acomp b & ADD :: []) ℕ+ f ⟧⇒*⟦ config σ (aexe b σ , aexe a σ , s) (size (acomp b & acomp a & this)) , suc f ⟧
+    ArithExecAux1 {this} {a} {b} {that} {f = f} rewrite &assoc this (acomp a) ((acomp b & ADD :: []) & that) | sym (&assoc (acomp b) (ADD :: []) that) | size`&+ {acomp b} {acomp a & this} | size`trans (acomp a) this | sym (size`&+ {acomp b} {this & acomp a}) | size`&+ {acomp b} {ADD :: []} | sym (+assoc (size` (acomp b)) 1 f) = ArithExec {b}
+
+
+    ArithExecAux2 : ∀ P Q R S → size` ((P & Q & R) & S) ≡ size` R ℕ+ (size` (Q & P & S))
+    ArithExecAux2 P Q R S rewrite size`&+ {Q} {P & S} | size`&+ {P} {S} | +assoc (size` Q) (size` P) (size` S) | +comm (size` Q) (size` P) | +assoc (size` R) (size` P ℕ+ size` Q) (size` S) | +comm (size` R) (size` P ℕ+ size` Q) | sym (+assoc (size` P) (size` Q) (size` R)) | sym (size`&+ {Q} {R}) | sym (size`&+ {P} {Q & R}) | sym (size`&+ {P & Q & R} {S}) = refl
+
+    ArithExecAux2' : ∀ {a b this} → (size` ((acomp a & acomp b & ADD :: []) & this)) ≡ (suc (size` (acomp b & acomp a & this)))
+    ArithExecAux2' {a} {b} {this} = ArithExecAux2 (acomp a) (acomp b) (ADD :: []) this
+
+    ArithExecAux3 : ∀ {this a b that} → ((this & acomp a & (acomp b & ADD :: []) & that) ፦ (+ size` (acomp b & acomp a & this))) ≡ just ADD
+    ArithExecAux3 {this} {a} {b} {that} rewrite sym (&assoc (acomp b) (ADD :: []) that) | &assoc (acomp a) (acomp b) (ADD :: that) | &assoc this (acomp a & acomp b) (ADD :: that) | size`&+ {acomp b} {acomp a & this} | size`&+ {acomp a} {this} | +comm (size` (acomp a)) (size` this) | +assoc (size` (acomp b)) (size` this) (size` (acomp a)) | +comm (size` (acomp b)) (size` this) | sym (+assoc (size` this) (size` (acomp b)) (size` (acomp a))) | +comm (size` (acomp b)) (size` (acomp a)) | sym (size`&+ {acomp a} {acomp b}) | sym (size`&+ {this} {acomp a & acomp b}) = stacklem2c (this & acomp a & acomp b) ADD that
+  
+
+  
 

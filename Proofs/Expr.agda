@@ -189,4 +189,3 @@ module Proofs.Expr where
   explem2 : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦*⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ → ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
   explem2 x done = x
   explem2 x (step one rest) = explem2 (explem2a x one) rest
-

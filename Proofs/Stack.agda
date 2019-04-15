@@ -3,7 +3,7 @@ module Proofs.Stack where
   open import Lang.Stack
   open import Base.DataStructures
   open import Data.Bool
-  open import Data.Integer.Properties using (+-identityʳ; +-comm; +-assoc)
+  open import Data.Integer.Properties using (+-identityˡ; +-identityʳ; +-comm; +-assoc)
   open import Data.Nat.Properties using (≤-refl)
   open import Misc.Base
   open import Agda.Builtin.Nat renaming (Nat to ℕ) hiding (_<_)
@@ -593,12 +593,6 @@ module Proofs.Stack where
   stacklem2d [] n = refl
   stacklem2d (i :: is) n rewrite +comm (size` is) n | +comm (size` is) (suc n) = refl
 
-{-
-  stacklem2 : ∀ p q {σ s f pc' σ' s' f'} → q ⊢⟦ config σ s (+ 0) , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (size p) , f ⟧⇒*⟦ config σ' s' (size p z+ pc') , f' ⟧
-  stacklem2 p [] q rewrite nothing≡σ q | nothing≡s q | sym (nothing≡pc q) | nothing≡f q | +comm (size` p) 0 = none
-  stacklem2 p (x :: xs) none rewrite +comm (size` p) 0 = none
-  stacklem2 p (x :: xs) (some {c = config σ s pc} {c' = config σ' s' (+ (suc n))} {c'' = config σ'' s'' pc''} {f} {f'} {f''} (one) rest) rewrite stacklem2d p n = some {c = config σ s (size p)} {c' = config σ' s' (size p z+ + (suc n)) }{c'' = config σ'' s'' (size p z+ pc'')} (stacklem2a p (x :: xs) one) (stacklem2c p x xs {!stacklem2a ? ? ?!})
-  -}
 
 
   addF : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧
@@ -933,3 +927,31 @@ module Proofs.Stack where
 
 --≤trans (s≤s (fdec rest')) (fdecone' one')
 --  ... | w = split (spliton' (s≤→¬≡ w) (some one' rest') one) on rest
+
+  
+  stacklem2a' : ∀ p q {σ s f pc pc' σ' s'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , suc f ⟧⇒⟦ config σ' s' (pc' z+ size p) , f ⟧
+  stacklem2a' p q (⊢LOADI x) = ⊢LOADI (stacklem2b p q x)
+  stacklem2a' p q (⊢LOAD x) = ⊢LOAD (stacklem2b p q x)
+  stacklem2a' p q (⊢STORE x) = ⊢STORE (stacklem2b p q x)
+  stacklem2a' p q (⊢ADD x) = ⊢ADD (stacklem2b p q x)
+  stacklem2a' p q {pc = (+ pc)} (⊢JMP {offset = o} x) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMP (stacklem2b p q x)
+  stacklem2a' p q (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse (stacklem2b p q x) x₁
+  stacklem2a' p q {pc = (+ pc)} (⊢JMPLESStrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPLESStrue ((stacklem2b p q x)) x₁
+  stacklem2a' p q {pc = (+ pc)} (⊢JMPGEtrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPGEtrue ((stacklem2b p q x)) x₁
+  stacklem2a' p q (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse (stacklem2b p q x) x₁
+
+  stacklem2aux1 : ∀ {q a f σ s pc σ' s' pc'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , a ⟧ → a ≡ f → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧
+  stacklem2aux1 sem prf rewrite prf = sem
+
+  stacklem2aux2 : ∀ {q a f σ' s' pc' σ'' s'' pc'' f'} → q ⊢⟦ config σ' s' pc' , a ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧ → a ≡ f → q ⊢⟦ config σ' s' pc' , f ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧
+  stacklem2aux2 sem prf rewrite prf = sem
+ 
+  stacklem2 : ∀ p q {σ s f pc pc' σ' s' f'} → q ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , f ⟧⇒*⟦ config σ' s' (pc' z+ size p) , f' ⟧
+  stacklem2 p q none = none
+  stacklem2 p q (some {c = config σ s pc} {config σ' s' pc'} {config σ'' s'' pc''} {suc f} {a} one rest) = some {c = config σ s (pc z+ size p)} {config σ' s' (pc' z+ size p)} (stacklem2a' p q {pc = pc} {pc'} (stacklem2aux1 one (fdecone one))) (stacklem2 p q {f = f} {pc'} {pc''} (stacklem2aux2 rest (fdecone one)))
+  stacklem2 p q {f = 0} (some () rest)
+
+{-
+  stacklem2 [] q {pc' = pc} semq rewrite +-identityˡ pc = semq
+  stacklem2 (i :: is) q semq = {!!}
+  -}
