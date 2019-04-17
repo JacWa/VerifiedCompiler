@@ -6,15 +6,21 @@ module Proofs.VerifiedCompilation where
   open import Proofs.ArithSemantics
   open import Proofs.Fuel
   open import Proofs.Bool
+  open import Proofs.Compiler
 
-  open import Lang.Expr
+  open import Semantics.Build
+
+  open import Lang.Expr renaming (_≟_ to _≟ⁱ_)
   open import Lang.Stack
 
   open import Compiler
 
+  open import Agda.Builtin.Sigma using () renaming (_,_ to _∣_)
   open import Agda.Builtin.Nat using (_<_)
+  open import Base.Inspect
+  open import Base.Tuple using (l; r)
 
-  open import Data.Nat using (suc ) renaming (_+_ to _ℕ+_)
+  open import Data.Nat using (suc; _≤_) renaming (_+_ to _ℕ+_)
   open import Data.Integer using (+_) renaming (_+_ to _ℤ+_; suc to zuc)
   open import Data.Bool using (true; false; _≟_)
   open import Data.Maybe
@@ -87,30 +93,47 @@ module Proofs.VerifiedCompilation where
 -----------------
 
 
-  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'} → (semᴴᴸ : ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧) → compile I ⊢⟦ config σ $ (+ 0) , fuelLL I f semᴴᴸ ⟧⇒*⟦ config σᴸᴸ $ (size (compile I)) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
+  Lemma : ∀ I {σ f σᴴᴸ σᴸᴸ f'}{finiteComp : 1 ≤ f'} → (semᴴᴸ : ⟦ σ , I , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧) → compile I ⊢⟦ config σ $ (+ 0) , fuelLL I f semᴴᴸ ⟧⇒*⟦ config σᴸᴸ $ (size (compile I)) , f' ⟧ → σᴸᴸ ≡ σᴴᴸ
   Lemma _ {f = 0} x w rewrite nofᴴ x | nofᴸ w = refl
   Lemma (SKIP) {f = suc f} (step () _)
   Lemma SKIP done x rewrite nothing≡σ x = refl
   Lemma (x ≔ a) {σ} {f = suc f} (step assign rest) w rewrite fuelSKIP f {rest = rest} | skipseqσ rest | skipseqf rest | size`&+ {acomp a} {STORE x :: []} | +comm (size` (acomp a)) 1 = Lemma1 {a} w
-  Lemma (SKIP ⋯ Q) {σ} {suc f} (step seqskip rest) w = Lemma Q rest w
+--  Lemma (SKIP ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step seqskip rest) w = Lemma Q {finiteComp = ineq} rest w
+  Lemma (P ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step one rest) w with P ≟ⁱ SKIP
+  Lemma (P ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step seqskip rest) w | yes refl = Lemma Q {finiteComp = ineq} rest w
+  Lemma (P ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep ()) rest) w | yes refl
+  ... | no ¬p with makeHLstp P {σ} {f} ¬p
+  Lemma (P ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep one) rest) w | no ¬p | pr ∣ sem = {!!}
+  Lemma (P ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqskip) rest) w | no ¬p | pr ∣ sem = ⊥-elim (¬p refl)
+{-
+  Lemma (SKIP ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step seqskip rest) w = Lemma Q {finiteComp = ineq} rest w
   
   Lemma (SKIP ⋯ Q) {σ} {suc f} (step (seqstep ()) rest) w
-  Lemma ((x ≔ a) ⋯ Q) {σ} {1} (step (seqstep assign) (step (empty _) done)) (some one rest) = {!!}
+  Lemma ((x ≔ a) ⋯ Q) {σ} {1} {finiteComp = ()} (step (seqstep assign) (step (empty _) done)) (some one rest)
   Lemma ((_ ≔ _) ⋯ Q) {σ} {1} (step (seqstep assign) (step (empty _) (step (empty x) rest))) w = ⊥-elim (x refl)
-  Lemma ((x ≔ a) ⋯ Q) {σ} {suc f} (step (seqstep assign) (step seqskip rest)) w = {!!}
+  Lemma ((x ≔ a) ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep assign) (step {f' = f'}  seqskip rest)) w = Lemma Q {finiteComp = ineq} rest (getRest {x ≔ a} {Q} ineq {!!} w)
+
+{-with insertAtEnd (stacklem1 {q = STORE x :: []} (Lemma1b' a {σ} {$} {suc (fuelLL Q f' rest)})) (⊢STORE (stacklem2c (acomp a) (STORE x) []))
+  ... | z rewrite +comm 1 (size` (acomp a)) | s+1 (size` (acomp a)) (fuelLL Q f' rest) | s+2 (size` (acomp a)) (fuelLL Q f' rest) | sym (size`&+ {acomp a} {STORE x :: []}) with getRest {x ≔ a} {Q} ineq z w
+  ... | z' = Lemma Q {finiteComp = ineq} rest z'-}
   Lemma ((_ ≔ _) ⋯ Q) {σ} {suc f}        (step (seqstep assign) (step (seqstep (empty x)) rest)) w = ⊥-elim (x refl)
-  Lemma (P ⋯ P₁ ⋯ Q) {σ} {suc f} (step (seqstep x) rest) w = {!!}
-  Lemma ((IF x₁ THEN P ELSE P₁) ⋯ Q) {σ} {suc f} (step (seqstep x) rest) w = {!!}
-  Lemma ((WHILE x₁ DO P) ⋯ Q) {σ} {suc f} (step (seqstep x) rest) w = {!!}
-  
-  Lemma (IF b THEN P ELSE Q) {σ} {suc f} (step (iftrue prf) rest) w with inspect (bexe b σ)
+  Lemma (SKIP ⋯ P₁ ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep seqskip) rest) w = Lemma (P₁ ⋯ Q) {finiteComp = ineq} rest w
+  Lemma (P ⋯ P' ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep (seqstep {this' = this} x)) rest) w = Lemma (this ⋯ P' ⋯ Q) {finiteComp = ineq} rest (getRest {P ⋯ P'} {{!Q!}} ineq {!!} w)
+  Lemma ((IF x₁ THEN P ELSE P') ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep (iftrue  x)) rest) w with compile P | compile P'
+  ... | this | that = Lemma (P  ⋯ Q) {finiteComp = ineq} rest {!!}
+  Lemma ((IF x₁ THEN P ELSE P') ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep (iffalse x)) rest) w with compile P | compile P'
+  ... | this | that = Lemma (P' ⋯ Q) {finiteComp = ineq} rest {!!}
+  Lemma ((WHILE b DO c) ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep (whilefalse x)) rest) w = Lemma (SKIP ⋯ Q) {finiteComp = ineq} rest {!!}
+  Lemma ((WHILE b DO c) ⋯ Q) {σ} {suc f} {finiteComp = ineq} (step (seqstep (whiletrue x)) rest) w = Lemma (c ⋯ (WHILE b DO c) ⋯ Q) {finiteComp = ineq} rest {!!}
+ -} 
+  Lemma (IF b THEN P ELSE Q) {σ} {suc f} {finiteComp = ineq} (step (iftrue prf) rest) w with inspect (bexe b σ)
   ... | false with≡ y rewrite y = ⊥-elim (bool⊥ prf)
-  ... | true with≡ _ = {!!}
-  Lemma (IF b THEN P ELSE Q) {σ} {suc f} (step (iffalse prf) rest) w with inspect (bexe b σ)
+  ... | true with≡ _ = Lemma P {finiteComp = ineq} rest {!!}
+  Lemma (IF b THEN P ELSE Q) {σ} {suc f} {finiteComp = ineq} (step (iffalse prf) rest) w with inspect (bexe b σ)
   ... | true with≡ y rewrite prf = ⊥-elim (bool⊥ y)
-  ... | false with≡ _ rewrite prf = {!!}
+  ... | false with≡ _ rewrite prf = Lemma Q {finiteComp = ineq} rest {!!}
   Lemma (WHILE b DO c) {σ} {suc f}_ _ with inspect (bexe b σ)
-  Lemma (WHILE b DO c) {f = suc f} (step (whiletrue prf)  rest)  w | true with≡ _ rewrite prf = Lemma (c ⋯ (WHILE b DO c)) rest (Lemma5 rest w)
+  Lemma (WHILE b DO c) {f = suc f} {finiteComp = ineq} (step (whiletrue prf)  rest)  w | true with≡ _ rewrite prf = Lemma (c ⋯ (WHILE b DO c)) {finiteComp = ineq} rest (Lemma5 rest w)
   Lemma (WHILE b DO c) {σ} {suc f} (step (whilefalse prf) rest)  w | false with≡ _ rewrite prf | fuelSKIP f {rest = rest} | skipseqσ rest | skipseqf rest with Lemma2 b (compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) {f} {$} {σ} prf
   ... | z rewrite fuelSKIP f {rest = rest} | size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} | Lemma4 {c} {b} prf = deterministic z w
   Lemma (WHILE b DO c) {_} (step (whiletrue x) rest) w | false with≡ y rewrite y = ⊥-elim (bool⊥ x)

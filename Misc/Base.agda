@@ -192,13 +192,6 @@ module Misc.Base where
   ∨switch : (b : Bool) → b ∨ false ≡ b
   ∨switch false = refl
   ∨switch true = refl
-
-  data Singleton {a} {A : Set a} (x : A) : Set a where
-    _with≡_ : (y : A) → x ≡ y → Singleton x
-
-  inspect : ∀ {a} {A : Set a} (x : A) → Singleton x
-  inspect x = x with≡ refl
-
   
   ! : Bool → Bool
   ! false = true

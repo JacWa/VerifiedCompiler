@@ -1,10 +1,12 @@
 module Proofs.Expr where
 
   open import Lang.Expr
-  open import Base.DataStructures 
+  open import Base.DataStructures
+  open import Base.Inspect
   open import Agda.Builtin.Equality
   open import Agda.Builtin.Bool
   open import Agda.Builtin.Nat renaming (Nat to ℕ; _+_ to _ℕ+_)
+  open import Data.Nat using (_≤_; z≤n; s≤s)
   open import Misc.Base
   open import Data.Empty
   open import Relation.Nullary
@@ -156,6 +158,10 @@ module Proofs.Expr where
   nofᴴ'f (empty x) = refl
   nofᴴ'f (seqstep x) = nofᴴ'f x
 
+  nofᴴ'I : ∀ {σ σ' I I' f'} → ¬ I ≡ SKIP → ⟦ σ , I , 0 ⟧↦⟦ σ' , I' , f' ⟧ → I' ≡ SKIP
+  nofᴴ'I _  (empty x) = refl
+  nofᴴ'I ¬p (seqstep x) = {!!}
+
   nofᴴ : ∀ {σ σ' I I' f'} → ⟦ σ , I , 0 ⟧↦*⟦ σ' , I' , f' ⟧ → σ' ≡ σ
   nofᴴ done = refl
   nofᴴ (step x rest) rewrite nofᴴ' x | nofᴴ'f x = nofᴴ rest
@@ -189,3 +195,55 @@ module Proofs.Expr where
   explem2 : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦*⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ → ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
   explem2 x done = x
   explem2 x (step one rest) = explem2 (explem2a x one) rest
+
+  detstepHLσ : ∀ {I σ f I' σ' f' I'' σ'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ , I , f ⟧↦⟦ σ'' , I'' , f'' ⟧ → σ' ≡ σ''
+  detstepHLσ {f = zero} sem1 sem2 rewrite nofᴴ' sem1 | nofᴴ' sem2 = refl
+  detstepHLσ {SKIP} {f = suc f} ()
+  detstepHLσ {x ≔ a} {f = suc f} assign assign = refl
+  detstepHLσ {I ⋯ I₁} {f = suc f} sem1 sem2 with I ≟ SKIP
+  detstepHLσ {.SKIP ⋯ I₁} {_} {suc f} seqskip seqskip | yes refl = refl
+  detstepHLσ {.SKIP ⋯ I₁} {_} {suc f} seqskip (seqstep ()) | yes refl
+  detstepHLσ {.SKIP ⋯ I₁} {_} {suc f} (seqstep ()) _ | yes refl
+  detstepHLσ {.SKIP ⋯ I₁} {_} {suc f} seqskip _ | no ¬p = ⊥-elim (¬p refl)
+  detstepHLσ {.SKIP ⋯ I₁} {_} {suc f} _ seqskip | no ¬p = ⊥-elim (¬p refl)
+  detstepHLσ {I ⋯ I₁} {_} {suc f} (seqstep sem1) (seqstep sem2) | no ¬p = detstepHLσ sem1 sem2
+  detstepHLσ {IF x THEN I ELSE I₁} {σ} {suc f} (iftrue x₁) (iftrue x₂) = refl
+  detstepHLσ {IF x THEN I ELSE I₁} {σ} {suc f} (iftrue x₁) (iffalse x₂) = refl
+  detstepHLσ {IF x THEN I ELSE I₁} {σ} {suc f} (iffalse x₁) (iftrue x₂) = refl
+  detstepHLσ {IF x THEN I ELSE I₁} {σ} {suc f} (iffalse x₁) (iffalse x₂) = refl
+  detstepHLσ {WHILE x DO I} {f = suc f} (whilefalse x₁) (whilefalse x₂) = refl
+  detstepHLσ {WHILE x DO I} {f = suc f} (whilefalse x₁) (whiletrue x₂) = refl
+  detstepHLσ {WHILE x DO I} {f = suc f} (whiletrue x₁) (whilefalse x₂) = refl
+  detstepHLσ {WHILE x DO I} {f = suc f} (whiletrue x₁) (whiletrue x₂) = refl
+
+  detstepHLf : ∀ {I σ f I' σ' f' I'' σ'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ , I , f ⟧↦⟦ σ'' , I'' , f'' ⟧ → f' ≡ f''
+  detstepHLf {f = zero} sem1 sem2 rewrite nofᴴ'f sem1 | nofᴴ'f sem2 = refl
+  detstepHLf {SKIP} {f = suc f} ()
+  detstepHLf {x ≔ a} {f = suc f} assign assign = refl
+  detstepHLf {I ⋯ I₁} {f = suc f} sem1 sem2 with I ≟ SKIP
+  detstepHLf {.SKIP ⋯ I₁} {_} {suc f} seqskip seqskip | yes refl = refl
+  detstepHLf {.SKIP ⋯ I₁} {_} {suc f} seqskip (seqstep ()) | yes refl
+  detstepHLf {.SKIP ⋯ I₁} {_} {suc f} (seqstep ()) _ | yes refl
+  detstepHLf {.SKIP ⋯ I₁} {_} {suc f} seqskip _ | no ¬p = ⊥-elim (¬p refl)
+  detstepHLf {.SKIP ⋯ I₁} {_} {suc f} _ seqskip | no ¬p = ⊥-elim (¬p refl)
+  detstepHLf {I ⋯ I₁} {_} {suc f} (seqstep sem1) (seqstep sem2) | no ¬p = detstepHLf sem1 sem2
+  detstepHLf {IF x THEN I ELSE I₁} {σ} {suc f} (iftrue x₁) (iftrue x₂) = refl
+  detstepHLf {IF x THEN I ELSE I₁} {σ} {suc f} (iftrue x₁) (iffalse x₂) = refl
+  detstepHLf {IF x THEN I ELSE I₁} {σ} {suc f} (iffalse x₁) (iftrue x₂) = refl
+  detstepHLf {IF x THEN I ELSE I₁} {σ} {suc f} (iffalse x₁) (iffalse x₂) = refl
+  detstepHLf {WHILE x DO I} {f = suc f} (whilefalse x₁) (whilefalse x₂) = refl
+  detstepHLf {WHILE x DO I} {f = suc f} (whilefalse x₁) (whiletrue x₂) = refl
+  detstepHLf {WHILE x DO I} {f = suc f} (whiletrue x₁) (whilefalse x₂) = refl
+  detstepHLf {WHILE x DO I} {f = suc f} (whiletrue x₁) (whiletrue x₂) = refl
+
+  detstepHLI : ∀ {I σ f I' σ' f' I'' σ'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ , I , f ⟧↦⟦ σ'' , I'' , f'' ⟧ → σ' ≡ σ''
+  detstepHLI {f = zero} sem1 sem2 = {!!} --rewrite nofᴴ' sem1 | nofᴴ' sem2 = refl
+  detstepHLI {SKIP} {f = suc f} ()
+  detstepHLI {x ≔ a} {f = suc f} assign assign = refl
+  detstepHLI {I ⋯ I₁} {f = suc f} sem1 sem2 with I ≟ SKIP
+  detstepHLI {.SKIP ⋯ I₁} {_} {suc f} seqskip seqskip | yes refl = refl
+  detstepHLI {.SKIP ⋯ I₁} {_} {suc f} seqskip (seqstep ()) | yes refl
+  detstepHLI {.SKIP ⋯ I₁} {_} {suc f} (seqstep ()) _ | yes refl
+  detstepHLI {.SKIP ⋯ I₁} {_} {suc f} seqskip _ | no ¬p = ⊥-elim (¬p refl)
+  detstepHLI {.SKIP ⋯ I₁} {_} {suc f} _ seqskip | no ¬p = ⊥-elim (¬p refl)
+  detstepHLI {I ⋯ I₁} {_} {suc f} (seqstep sem1) (seqstep sem2) | no ¬p = detstepHLI sem1 sem2

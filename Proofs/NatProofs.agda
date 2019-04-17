@@ -129,4 +129,10 @@ module Proofs.NatProofs where
 
     si1 : ∀ x y → suc (x + y) ≡ x + 1 + y
     si1 x y rewrite +comm x 1 = refl
+
+    s+1 : ∀ x y → suc (x + y) ≡ x + 1 + y
+    s+1 x y rewrite +comm x 1 = refl
+
+    s+2 : ∀ x y → x + suc y   ≡ x + 1 + y
+    s+2 x y rewrite +assoc x 1 y = refl
     

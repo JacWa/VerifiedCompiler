@@ -69,6 +69,13 @@ module Proofs.ArithSemantics where
   Lemma1' : ∀ {a rest σ s f} → ((acomp a) & rest) ⊢⟦ config σ s (+ 0) , size` (acomp a & rest) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , size` rest ℕ+ f ⟧
   Lemma1' {a} {rest} {f = f} rewrite size`&+ {acomp a} {rest} | sym (+assoc (size` (acomp a)) (size` rest) (f)) = stacklem1 (Lemma1b' a)
 
+  Lemma1'' : ∀ {a rest σ s f} → ((acomp a) & rest) ⊢⟦ config σ s (+ 0) , size` (acomp a) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , f ⟧
+  Lemma1'' {a} = stacklem1 (Lemma1b' a)
+
+  Lemma1''&Store : ∀ {a x rest σ s f} → (acomp a & STORE x :: rest) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config ((x ≔ (aexe a σ)) ∷ σ) s (+ suc (size` (acomp a))) , f ⟧
+  Lemma1''&Store {a} {x} {rest} {σ} {s} {f} with Lemma1b' a {σ} {s} {suc f}
+  ... | z rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) with stacklem1 {q = STORE x :: rest} z
+  ... | z' = insertAtEnd z' (⊢STORE (stacklem2c (acomp a) (STORE x) rest))
 
   mutual
     ArithExec : ∀ {a this that σ s f} → (this & (acomp a) & that) ⊢⟦ config σ s (size this) , size` (acomp a) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a & this)) , f ⟧

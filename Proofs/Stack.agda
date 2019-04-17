@@ -2,6 +2,7 @@ module Proofs.Stack where
 
   open import Lang.Stack
   open import Base.DataStructures
+  open import Base.Inspect
   open import Data.Bool
   open import Data.Integer.Properties using (+-identityˡ; +-identityʳ; +-comm; +-assoc)
   open import Data.Nat.Properties using (≤-refl)
@@ -955,3 +956,4 @@ module Proofs.Stack where
   stacklem2 [] q {pc' = pc} semq rewrite +-identityˡ pc = semq
   stacklem2 (i :: is) q semq = {!!}
   -}
+

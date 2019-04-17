@@ -10,7 +10,7 @@ module Compiler where
   open import Proofs.Basic
   open import Misc.Base 
   open import Base.DataStructures 
-  open import Lang.Expr
+  open import Lang.Expr hiding (_≟_)
   open import Lang.Stack
   open import Relation.Nullary
 
