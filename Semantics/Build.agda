@@ -1,12 +1,14 @@
 module Semantics.Build where
 
   
-  open import Agda.Builtin.Sigma using (fst; snd) renaming (_,_ to _∣_)
+  open import Agda.Builtin.Sigma using (fst; snd; Σ) renaming (_,_ to _∣_)
   open import Agda.Builtin.Equality
   open import Base.DataStructures renaming (_,_ to _::_)
   open import Base.Existential
   open import Base.Inspect
   open import Base.Tuple
+
+  open import Compiler
   
   
   open import Data.Nat using (suc; _≤_) renaming (_+_ to _ℕ+_)
@@ -15,10 +17,15 @@ module Semantics.Build where
   open import Data.Bool using (true; false)
 
   open import Proofs.Expr
+  open import Proofs.Fuel
+  open import Semantics.HighLevel
+  open import Semantics.LowLevel
 
   open import Relation.Nullary
 
   open import Lang.Expr
+  open import Lang.Stack
+  
 
   makeHLstp : ∀ I {σ f} → ¬ I ≡ SKIP → ∃[ x ] ⟦ σ , I , suc f ⟧↦⟦ l x , r x , f ⟧
   makeHLstp SKIP {σ} ¬p = ⊥-elim (¬p refl)
@@ -55,3 +62,18 @@ module Semantics.Build where
   ... | false with≡ prf = (σ , f) ∣ (step (whilefalse prf) done)
   ... | true with≡ prf with makeHL (I ⋯ (WHILE x DO I)) {σ} {f}
   ... | pr ∣ sem = l pr , r pr ∣ (step (whiletrue prf) sem)
+
+{-
+  makeLL : ∀ I σ f → ∃[ x ] (compile I ⊢⟦ config σ $ (+ 0) , fuelLL I f (Σ.snd (makeHL I {σ} {f})) ⟧⇒*⟦ config (l x) $ (+ (r x)) , (r (Σ.fst (makeHL I {σ} {f}))) ⟧)
+  makeLL I σ 0 with I ≟ SKIP
+  ... | yes refl = (σ , 0) ∣ none
+  ... | no ¬p    = (σ , 0) ∣ none
+  makeLL SKIP σ (suc f) = (σ , 0) ∣ none
+  makeLL (x ≔ a) σ (suc f) = ({!!} , {!!}) ∣ {!!}
+  makeLL (I ⋯ I₁) σ (suc f) = {!!}
+  makeLL (IF x THEN I ELSE I₁) σ (suc f) = ({!!} , {!!}) ∣ {!!}
+  makeLL (WHILE x DO I) σ (suc f) = {!!}
+-}
+{-
+  seqdecomp :  ∀ I {σ f} → ∃[ x ] (⟦ σ , I ⋯ I' , f ⟧↦*⟦ l x , I' , r x ⟧ × ⟦ σ , I' , f ⟧↦*⟦ l x , SKIP , r x ⟧)
+-}

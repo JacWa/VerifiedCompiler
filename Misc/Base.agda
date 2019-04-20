@@ -41,6 +41,9 @@ module Misc.Base where
   ≤s {0} _ _ = _≤_.z≤n
   ≤s {suc n} (suc y) (_≤_.s≤s p) = _≤_.s≤s (≤s y p)
 
+  s≤ : ∀ {x y} → suc x ≤ y → x ≤ y
+  s≤ (_≤_.s≤s ineq) = ≤s _ ineq
+
   ≤= : ∀ {x} → x ≤ x
   ≤= {0} = _≤_.z≤n
   ≤= {suc x} = _≤_.s≤s ≤=

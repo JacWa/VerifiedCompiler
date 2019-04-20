@@ -135,4 +135,7 @@ module Proofs.NatProofs where
 
     s+2 : ∀ x y → x + suc y   ≡ x + 1 + y
     s+2 x y rewrite +assoc x 1 y = refl
-    
+
+    ≤≥= : ∀ {x y} → x ≤ y → y ≤ x → x ≡ y
+    ≤≥= z≤n z≤n = refl
+    ≤≥= (s≤s i1) (s≤s i2) rewrite ≤≥= i1 i2 = refl

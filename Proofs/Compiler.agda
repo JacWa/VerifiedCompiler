@@ -10,7 +10,8 @@ module Proofs.Compiler where
   open import Lang.Stack
   open import Base.DataStructures
 
-  open import Proofs.Stack
+  open import Semantics.LowLevel
+
   open import Compiler
   
   postulate

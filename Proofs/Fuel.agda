@@ -9,6 +9,7 @@ module Proofs.Fuel where
   open import Proofs.Expr
   open import Compiler
   open import Base.DataStructures
+  open import Semantics.HighLevel
   
   
 

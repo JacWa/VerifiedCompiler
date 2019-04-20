@@ -21,65 +21,7 @@ module Proofs.Stack where
   open import Relation.Binary
   open import Relation.Nullary using (¬_; Dec; yes; no)
 
-
-  data _⊢⟦_,_⟧⇒⟦_,_⟧ : Prog → Config → ℕ → Config → ℕ → Set where
-  
-    ⊢LOADI        :        ∀ {p state stack pc n f} → (p ፦ (+ pc)) ≡ just (LOADI n)
-                    ------------------------------------------------------------------------------
-                     → p ⊢⟦ config state stack (+ pc) , suc f ⟧⇒⟦ config state (n , stack) (+ (suc pc)) , f ⟧
-
-
-    ⊢LOAD         :        ∀ {p state stack pc x f} → (p ፦ (+ pc)) ≡ just (LOAD x)
-                    ---------------------------------------------------------------------------------------------
-                    → p ⊢⟦ config state stack (+ pc) , suc f ⟧⇒⟦ config state ((get-var x state) , stack) (+ (suc pc)) , f ⟧
-
-
-    ⊢STORE        :          ∀ {p state n rest pc x f} → (p ፦ (+ pc)) ≡ just (STORE x)
-                    ----------------------------------------------------------------------------------------
-                    → p ⊢⟦ config state (n , rest) (+ pc) , suc f ⟧⇒⟦ config ((x ≔ n) ∷ state) rest (+ (suc pc)) , f ⟧
-
-
-    ⊢ADD          :            ∀ {p state rest n1 n2 pc f} → (p ፦ (+ pc)) ≡ just ADD
-                    -----------------------------------------------------------------------------------------------
-                    → p ⊢⟦ config state (n1 , n2 , rest) (+ pc) , suc f ⟧⇒⟦ config state ((n1 + n2) , rest) (+ (suc pc)) , f ⟧
-
-
-    ⊢JMP          :            ∀ {p state stack pc offset f} → (p ፦ (+ pc)) ≡ just (JMP offset)
-                    -------------------------------------------------------------------------------------
-                       → p ⊢⟦ config state stack (+ pc) , suc f ⟧⇒⟦ config state stack (+ (suc pc) z+ offset) , f ⟧
-
-
-    ⊢JMPLESSfalse : ∀ {p state rest head next pc offset f} → (p ፦ (+ pc)) ≡ just (JMPLESS offset) → head ≤ next
-                    ----------------------------------------------------------------------------------------------
-                        → p ⊢⟦ config state (head , next , rest) (+ pc) , suc f ⟧⇒⟦ config state rest (+ (suc pc)) , f ⟧
-
-
-    ⊢JMPLESStrue :  ∀ {p state rest head next pc offset f} → (p ፦ (+ pc)) ≡ just (JMPLESS offset) → head > next
-                   -----------------------------------------------------------------------------------------------
-                   → p ⊢⟦ config state (head , next , rest) (+ pc) , suc f ⟧⇒⟦ config state rest (+ (suc pc) z+ offset) , f ⟧
-
-
-    ⊢JMPGEtrue    : ∀ {p state rest head next pc offset f} → (p ፦ (+ pc)) ≡ just (JMPGE offset) → head ≤ next
-                   ------------------------------------------------------------------------------------------------
-                   → p ⊢⟦ config state (head , next , rest) (+ pc) , suc f ⟧⇒⟦ config state rest (+ (suc pc) z+ offset) , f ⟧
-
-
-    ⊢JMPGEfalse   : ∀ {p state rest head next pc offset f} → (p ፦ (+ pc)) ≡ just (JMPGE offset) → head > next
-                   ---------------------------------------------------------------------------------------------
-                     → p ⊢⟦ config state (head , next , rest) (+ pc) , suc f ⟧⇒⟦ config state rest (+ (suc pc)) , f ⟧
-
-
-
-  data _⊢⟦_,_⟧⇒*⟦_,_⟧ : Prog → Config → ℕ → Config → ℕ → Set where
-
-    none : ∀ {p c f}   --------------------------------------------
-                                → p ⊢⟦ c , f ⟧⇒*⟦ c , f ⟧
-
-
-    some : ∀ {p c c' c'' f f' f''} →   p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒*⟦ c'' , f'' ⟧ →
-                                       ------------------------------------------------------------
-                                                      p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧
-
+  open import Semantics.LowLevel
 
   getFinalStoreᴸᴸ : ∀ {c' p c f f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → State
   getFinalStoreᴸᴸ {config σ _ _} m = σ
@@ -561,8 +503,13 @@ module Proofs.Stack where
   deterministic {x :: xs} {config σ s pc} sem1 none rewrite noexec sem1 = refl
   deterministic {x :: xs} {config σ s pc} {0} (some () rest)
   deterministic {x :: xs} {config σ s pc} {suc f} (some one rest) (some one' rest') rewrite fdecone one' | fdecone one | detstep one one' = deterministic rest rest'
-  
 
+  deterministic' : ∀ {p c f σ' σ'' s' s'' pc' pc'' f'} → p ⊢⟦ c , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧ → σ'' ≡ σ'
+  deterministic' {[]} {config σ s pc} sem1 sem2 rewrite nothing≡σ sem1 | nothing≡σ sem2 = refl
+  deterministic' {x :: xs} {config σ s pc} none sem2 rewrite noexec sem2 = refl
+  deterministic' {x :: xs} {config σ s pc} sem1 none rewrite noexec sem1 = refl
+  deterministic' {x :: xs} {config σ s pc} {0} (some () rest)
+  deterministic' {x :: xs} {config σ s pc} {suc f} (some one rest) (some one' rest') rewrite fdecone one' | fdecone one | detstep one one' = deterministic' rest rest'
 
   stacklem2b : ∀ p q {pc i} → q ፦ pc ≡ just i → (p & q) ፦ (pc z+ size p) ≡ just i
   stacklem2b [] q {pc} prf rewrite sym (prf) | z+0 pc = refl
@@ -957,3 +904,5 @@ module Proofs.Stack where
   stacklem2 (i :: is) q semq = {!!}
   -}
 
+
+  

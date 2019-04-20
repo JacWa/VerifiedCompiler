@@ -2,7 +2,8 @@ module Proofs.ArithSemantics where
 
   open import Proofs.NatProofs
   open import Proofs.Stack
- 
+
+  open import Semantics.LowLevel
 
   open import Lang.Expr
   open import Lang.Stack
@@ -61,7 +62,7 @@ module Proofs.ArithSemantics where
   ... | w rewrite &assoc (acomp a) (acomp b) (ADD :: []) | size`&+ {acomp a & acomp b} {ADD :: []} | size`&+ {acomp a} {acomp b} | +comm (size` (acomp a) ℕ+ size` (acomp b)) 1 | +comm (aexe a σ) (aexe b σ) | sym (size`&+ {acomp a} {acomp b}) = insertAtEnd w (⊢ADD (stacklem2c (acomp a & acomp b) ADD []))
 
 
-  Lemma1 : ∀ {a x σ f σᴸᴸ} → ((acomp a) & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σᴸᴸ $ (+ suc (size` (acomp a))) , f ⟧  → σᴸᴸ ≡ ((x ≔ (aexe a σ)) ∷ σ)
+  Lemma1 : ∀ {a x σ f σᴸᴸ} → ((acomp a) & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σᴸᴸ $ (+ suc (size` (acomp a))) , f ⟧  → ((x ≔ (aexe a σ)) ∷ σ) ≡ σᴸᴸ
   Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w with Lemma1b' a {σ} {$} {suc f}
   ... | w' rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) | Lemma1a a x σ σᴸᴸ $ f w' w = refl
 
