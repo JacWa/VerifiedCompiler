@@ -1,26 +1,28 @@
 module Lang.Stack where
 
-  -- Data.* files are imported from agda-stdlib
+------------------------------------------------------------
+-- Definition of the stack machine language instructions, --
+-- the construction of programs and some basic proofs     --
+-- about the size function for said programs.             --
+------------------------------------------------------------
+
+  open import Agda.Builtin.Equality
+
   open import Data.Nat.Base renaming (_+_ to _ℕ+_) hiding (_≟_)
   open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_)
-  open import Agda.Builtin.Equality
   open import Data.String.Base
-  open import Data.Bool
   open import Data.Maybe
-  open import Proofs.NumProofs
+  
   open import Proofs.NatProofs
   open import Proofs.Basic
-  open import Misc.Base 
+  
+  open import Misc.Base
+  
   open import Base.DataStructures
-  open import Relation.Nullary
-  open import Relation.Nullary.Decidable
-  open import Agda.Primitive
 
 --------------------
 -- Stack language --
 --------------------
-
-  -- Have to use stack height difference instead of set stack heights, as jumps make it possible for an instruction to apply to the stack at different heights.
 
   data Inst : Set where
     LOADI   : ℕ → Inst
@@ -37,10 +39,19 @@ module Lang.Stack where
     _::_ : Inst → Prog → Prog
 
   infixr 19 _&_
+  -- Programs composition.
   _&_ : Prog → Prog → Prog
   []        & ys = ys
   (x :: xs) & ys = x :: (xs & ys)
 
+  -- Instruction lookup / program indexing.
+  _፦_ : Prog → ℤ → Maybe Inst  
+  []        ፦ _             = nothing
+  _         ፦ (-[1+ _ ])    = nothing
+  (i :: is) ፦ (+ 0)       = just i
+  (i :: is) ፦ (+ (suc n)) = is ፦ (+ n)
+
+  
   size` : Prog → ℕ
   size` [] = 0
   size` (x :: xs) = suc (size` xs)
@@ -51,13 +62,6 @@ module Lang.Stack where
 -----------------
 -- SIZE PROOFS --
 -----------------
-
-  {-- size`+ : {p : Prog} → 0 ≤ size` p
-  size`+ = z≤n
-
-  size+ : ∀ {p n}{eq : n ≡ (size` p)} → size p ℤ≡ (pos n)
-  size+ {[]} {0} {refl} = ℤzero
-  size+ {x :: xs} {suc n} {refl} = ℤpos (size+ {xs} {n} {refl}) --}
 
   ℕ≤= : ∀ {x} → x ≤ x
   ℕ≤= {0} = z≤n
@@ -136,18 +140,11 @@ module Lang.Stack where
   size`trans : ∀ P Q → size` (P & Q) ≡ size` (Q & P)
   size`trans P Q rewrite size`&+ {P} {Q} | +comm (size` P) (size` Q) | size`&+ {Q} {P} = refl
 
-  
-  &assoc' : ∀ P Q R → P & Q & R ≡ (P & Q) & R
-  &assoc' [] Q R = refl
-  &assoc' (i :: is) Q R rewrite &assoc' is Q R = refl
+  &assoc : ∀ P Q R → P & Q & R ≡ (P & Q) & R
+  &assoc [] Q R = refl
+  &assoc (i :: is) Q R rewrite &assoc is Q R = refl
   
   size`&+3/4 : ∀ P Q R S → size` (P & Q & R & S) ≡ size` R ℕ+ size` (P & Q & S)
-  size`&+3/4 P Q R S rewrite &assoc' P Q (R & S) | size`&+ {P & Q} {R & S} | size`&+ {R} {S} | +assoc (size` (P & Q)) (size` R) (size` S) | +comm (size` (P & Q)) (size` R) | sym (+assoc (size` R) (size` (P & Q)) (size` S)) | sym (size`&+ {P & Q} {S}) | &assoc' P Q S = refl
+  size`&+3/4 P Q R S rewrite &assoc P Q (R & S) | size`&+ {P & Q} {R & S} | size`&+ {R} {S} | +assoc (size` (P & Q)) (size` R) (size` S) | +comm (size` (P & Q)) (size` R) | sym (+assoc (size` R) (size` (P & Q)) (size` S)) | sym (size`&+ {P & Q} {S}) | &assoc P Q S = refl
 
-  
-  _፦_ : Prog → ℤ → Maybe Inst  
-  []        ፦ _             = nothing
-  _         ፦ (-[1+ _ ])    = nothing
-  (i :: is) ፦ (+ 0)       = just i
-  (i :: is) ፦ (+ (suc n)) = is ፦ (+ n)
 

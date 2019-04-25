@@ -1,17 +1,20 @@
 module Lang.Expr where
 
   -- Data.* files are imported from agda-stdlib
-  open import Function using (_∘_)
-  open import Agda.Builtin.Nat using (_<_)
-  open import Data.Nat using (ℕ; suc) renaming (_+_ to _ℕ+_; _≟_ to ℕeq?)
   open import Agda.Builtin.Equality
+  open import Agda.Builtin.Nat using (_<_)
+
+  open import Function using (_∘_)
+  
+  open import Data.Nat using (ℕ; suc) renaming (_+_ to _ℕ+_; _≟_ to ℕeq?)
   open import Data.String renaming (_≟_ to streq?)
   open import Data.Bool renaming (_≟_ to booleq?)
   open import Data.Empty
+
   open import Base.DataStructures  
-  open import Relation.Binary.Core
-  open import Relation.Binary.PropositionalEquality using (cong; subst)
+
   open import Relation.Nullary
+  open import Relation.Binary.Core
   
 ----------------------------
 -- Expression definitions --
@@ -30,7 +33,7 @@ module Lang.Expr where
     _AND_   : BExp → BExp → BExp
     _LT_    : AExp → AExp → BExp
 
-  -- Instructions
+  -- Commands
   infixl 20 _⋯_
   data IExp : Set where
     SKIP          : IExp
@@ -40,17 +43,29 @@ module Lang.Expr where
     WHILE_DO_     : BExp → IExp → IExp
 
   -- Execute arithmetic expressions
-  aexe : AExp → State → ℕ
+  aexe : AExp → Store → ℕ
   aexe (NAT val)  _     = val
-  aexe (VAR name) state = get-var name state 
-  aexe (x + y)    state = (aexe x state) ℕ+ (aexe y state)
+  aexe (VAR name) store = get-var name store 
+  aexe (x + y)    store = (aexe x store) ℕ+ (aexe y store)
 
   -- Execute boolean expressions
-  bexe : BExp → State → Bool
+  bexe : BExp → Store → Bool
   bexe (BOOL b)  _     = b
-  bexe (NOT x)   state = not (bexe x state)
-  bexe (x AND y) state = (bexe x state) ∧ (bexe y state)
-  bexe (m LT n)  state = (aexe m state) < (aexe n state)
+  bexe (NOT x)   store = not (bexe x store)
+  bexe (x AND y) store = (bexe x store) ∧ (bexe y store)
+  bexe (m LT n)  store = (aexe m store) < (aexe n store)
+
+
+
+-----------------------------
+-- Equality of expressions --
+-----------------------------
+
+  ----------
+  -- AExp --
+  ----------
+
+  -- Helper Functions --
 
   aeq?-1 : ∀ {n n'} → NAT n ≡ NAT n' → n ≡ n'
   aeq?-1 refl = refl
@@ -64,6 +79,7 @@ module Lang.Expr where
   aeq?-3-r : ∀ {n n' n'' n'''} → n + n'' ≡ n' + n''' → n'' ≡ n'''
   aeq?-3-r refl = refl
 
+  -- Decides if two arithmetic expressions are equal and provides a proof.
   aeq? : Decidable {A = AExp} _≡_
   aeq? (NAT n) (NAT n') with ℕeq? n n'
   ... | yes refl = yes refl
@@ -81,6 +97,12 @@ module Lang.Expr where
   ... | yes refl | yes refl = yes refl
   ... | no prf  | _ = no (prf ∘ aeq?-3-l)
   ... | _ | no prf  = no (prf ∘ aeq?-3-r)
+
+  ----------
+  -- BExp --
+  ----------
+
+  -- Helper Functions --
 
   beq?-bool : ∀ {b b'} → BOOL b ≡ BOOL b' → b ≡ b'
   beq?-bool refl = refl
@@ -100,6 +122,7 @@ module Lang.Expr where
   beq?-LT-r : ∀ {a a' b b'} → a LT b ≡ a' LT b' → b ≡ b'
   beq?-LT-r refl = refl
 
+    -- Decides if two boolean expressions are equal and provides a proof.
   beq? : Decidable {A = BExp} _≡_
   beq? (BOOL x) (BOOL x₁) with booleq? x x₁
   ... | yes refl = yes refl
@@ -128,6 +151,13 @@ module Lang.Expr where
   ... | no ¬p | _ = no (¬p ∘ beq?-LT-l)
   ... | _ | no ¬p = no (¬p ∘ beq?-LT-r)
 
+
+  --------------
+  -- Commands --
+  --------------
+
+  -- Helper Functions --
+  
   ieq-≔-str : {x x' : String}{a a' : AExp} → _≡_ {A = IExp} (x ≔ a) (x' ≔ a') → x ≡ x'
   ieq-≔-str refl = refl
 
@@ -155,6 +185,7 @@ module Lang.Expr where
   ieq-whl-c : ∀ {b b' c c'} → WHILE b DO c ≡ WHILE b' DO c' → c ≡ c'
   ieq-whl-c refl = refl
 
+  -- Decides if two commands are equal and provides a proof.
   _≟_ :  Decidable {A = IExp} _≡_
   SKIP ≟ SKIP = yes refl
   SKIP ≟ (x ≔ a) = no λ ()

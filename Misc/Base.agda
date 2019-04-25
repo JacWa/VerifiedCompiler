@@ -14,6 +14,11 @@ module Misc.Base where
   open import Data.Empty
   import Level using (zero)
 
+------------------------------------
+-- Miscellaneous helper functions --
+------------------------------------
+
+
   is_≤_ : ℕ → ℕ → Bool
   is 0 ≤ x             = true
   is (suc y) ≤ 0       = false

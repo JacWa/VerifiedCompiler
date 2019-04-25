@@ -1,28 +1,32 @@
 module Compiler where
 
-  -- Data.* files are imported from agda-stdlib
+  open import Agda.Builtin.Equality
+  
   open import Data.Nat renaming (_+_ to _ℕ+_) hiding (_≟_)
   open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_; _<_; _≟_)
-  open import Agda.Builtin.Equality
   open import Data.String.Base
   open import Data.Bool
-  open import Proofs.NatProofs
-  open import Proofs.Basic
-  open import Misc.Base 
-  open import Base.DataStructures 
+  
+  open import Misc.Base
+  
+  open import Base.DataStructures
+  
   open import Lang.Expr hiding (_≟_)
   open import Lang.Stack
+  
   open import Relation.Nullary
 
 --------------
 -- Compiler --
 --------------
 
+  -- Compilation of Arithmetic Expressions
   acomp : AExp → Prog
   acomp (NAT n) = (LOADI n) :: []
   acomp (VAR v) = (LOAD v) :: []
   acomp (a + b) = acomp a & acomp b & ADD :: []
 
+  -- Compilation of Boolean Expressions
   bcomp : BExp → (flag : Bool) → (offset : ℤ) → Prog
   bcomp (BOOL bool) flag offset with flag ≟ bool
   ... | yes p = (JMP offset) :: []
@@ -35,9 +39,7 @@ module Compiler where
   ... | true  = acomp x & acomp y & (JMPLESS offset :: [])
   ... | false = acomp x & acomp y & (JMPGE offset :: [])
 
-
------- Don't need absolute jump addresses. Can use offset from current position.
-
+  -- Compilation of commands
   compile : IExp → Prog
   compile SKIP = []
   compile (x ≔ a) = acomp a & (STORE x :: [])

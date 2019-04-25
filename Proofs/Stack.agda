@@ -1,34 +1,39 @@
 module Proofs.Stack where
 
   open import Lang.Stack
+  
   open import Base.DataStructures
   open import Base.Inspect
-  open import Data.Bool
-  open import Data.Integer.Properties using (+-identityˡ; +-identityʳ; +-comm; +-assoc)
-  open import Data.Nat.Properties using (≤-refl)
+  
   open import Misc.Base
+  
   open import Agda.Builtin.Nat renaming (Nat to ℕ) hiding (_<_)
-  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_; _<_)
   open import Agda.Builtin.Equality
-  open import Data.Star
+  
   open import Data.Nat.Base
-  open import Data.Sign renaming (+ to ⊹)
   open import Data.String renaming (_≟_ to streqdec)
   open import Data.Maybe
   open import Data.Empty
+  open import Data.Bool
+  open import Data.Integer.Properties using (+-identityˡ; +-identityʳ; +-comm; +-assoc)
+  open import Data.Nat.Properties using (≤-refl)
+  open import Data.Integer renaming (suc to zuc; _+_ to _z+_) hiding (_≤_; _>_; _<_)
+  
   open import Proofs.Basic
   open import Proofs.NatProofs
+  
   open import Relation.Binary
   open import Relation.Nullary using (¬_; Dec; yes; no)
 
   open import Semantics.LowLevel
 
-  getFinalStoreᴸᴸ : ∀ {c' p c f f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → State
-  getFinalStoreᴸᴸ {config σ _ _} m = σ
+  --------------------------------------
+  -- Proofs about low level semantics --
+  --------------------------------------
 
-  &assoc : ∀ P Q R → P & Q & R ≡ (P & Q) & R
-  &assoc [] Q R = refl
-  &assoc (i :: is) Q R rewrite &assoc is Q R = refl
+    --------------------------
+    -- Semantic composition --
+    --------------------------
 
   insertAtEnd : ∀ {p c f c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧
   insertAtEnd none w = some w none
@@ -38,6 +43,37 @@ module Proofs.Stack where
   insertAtEnd* w none = w
   insertAtEnd* w (some one rest) = insertAtEnd* (insertAtEnd w one) rest
 
+    ------------------------------------------------------------------------------
+    -- Adding more instructions to a program does not change existing semantics --
+    ------------------------------------------------------------------------------
+
+  stacklem1a : ∀ p q {pc a} → p ፦ pc ≡ just a → p ፦ pc ≡ (p & q) ፦ pc
+  stacklem1a [] _ ()
+  stacklem1a p [] _ rewrite &[] {p} = refl
+  stacklem1a (p :: ps) q {+ 0} _ = refl
+  stacklem1a (p :: ps) q {+ (suc n)} x = stacklem1a ps q x
+  stacklem1a (p :: ps) q { -[1+ n ]} ()
+
+  stacklem1b : ∀ p q {pc a} → p ፦ pc ≡ just a → (p & q) ፦ pc ≡ just a
+  stacklem1b p q j rewrite (sym j) = sym (stacklem1a p q j)
+
+  stacklem1c : ∀ {p q c c' f f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → (p & q) ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
+  stacklem1c {p} {q} (⊢LOADI prf) = ⊢LOADI (stacklem1b p q prf)
+  stacklem1c {p} {q} (⊢LOAD prf) = ⊢LOAD (stacklem1b p q prf)
+  stacklem1c {p} {q} (⊢ADD prf) = ⊢ADD (stacklem1b p q prf)
+  stacklem1c {p} {q} (⊢STORE prf) = ⊢STORE (stacklem1b p q prf)
+  stacklem1c {p} {q} (⊢JMP prf) = ⊢JMP (stacklem1b p q prf)
+  stacklem1c {p} {q} (⊢JMPLESStrue prf ltc) = ⊢JMPLESStrue (stacklem1b p q prf) ltc
+  stacklem1c {p} {q} (⊢JMPLESSfalse prf ltc) = ⊢JMPLESSfalse (stacklem1b p q prf) ltc
+  stacklem1c {p} {q} (⊢JMPGEtrue prf ltc) = ⊢JMPGEtrue (stacklem1b p q prf) ltc
+  stacklem1c {p} {q} (⊢JMPGEfalse prf ltc) = ⊢JMPGEfalse (stacklem1b p q prf) ltc
+
+  -- Adding another program on the RHS. --
+  stacklem1 : ∀ {p q c c' f f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → (p & q) ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  stacklem1 none = none
+  stacklem1 (some one then) = some (stacklem1c one) (stacklem1 then)
+
+  -- Executing a single instruction always reduces the fuel by one. --
   fdecone : ∀ {p c f c' f'} → p ⊢⟦ c , (suc f) ⟧⇒⟦ c' , f' ⟧ → f' ≡ f
   fdecone (⊢LOADI x) = refl
   fdecone (⊢LOAD x₁) = refl
@@ -48,6 +84,46 @@ module Proofs.Stack where
   fdecone (⊢JMPLESStrue x x₁) = refl
   fdecone (⊢JMPGEtrue x x₁) = refl
   fdecone (⊢JMPGEfalse x x₁) = refl
+  
+  stacklem2c : ∀ p i is → (p & i :: is) ፦ (size p) ≡ just i
+  stacklem2c [] i is = refl
+  stacklem2c (x :: xs) i is = stacklem2c xs i is
+  
+  stacklem2b : ∀ p q {pc i} → q ፦ pc ≡ just i → (p & q) ፦ (pc z+ size p) ≡ just i
+  stacklem2b [] q {pc} prf rewrite sym (prf) | z+0 pc = refl
+  stacklem2b (i :: is) q {+ 0} prf rewrite 0+z (size (i :: is)) = stacklem2b is q prf
+  stacklem2b (i :: is) q {+ (suc n)} prf rewrite +comm n (suc (size` is)) | +comm (size` is) n = stacklem2b is q prf
+  stacklem2b (i :: is) [] { -[1+ _ ]} ()
+  stacklem2b (i :: is) (q :: qs) { -[1+ _ ]} ()
+
+  stacklem2a' : ∀ p q {σ s f pc pc' σ' s'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , suc f ⟧⇒⟦ config σ' s' (pc' z+ size p) , f ⟧
+  stacklem2a' p q (⊢LOADI x) = ⊢LOADI (stacklem2b p q x)
+  stacklem2a' p q (⊢LOAD x) = ⊢LOAD (stacklem2b p q x)
+  stacklem2a' p q (⊢STORE x) = ⊢STORE (stacklem2b p q x)
+  stacklem2a' p q (⊢ADD x) = ⊢ADD (stacklem2b p q x)
+  stacklem2a' p q {pc = (+ pc)} (⊢JMP {offset = o} x) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMP (stacklem2b p q x)
+  stacklem2a' p q (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse (stacklem2b p q x) x₁
+  stacklem2a' p q {pc = (+ pc)} (⊢JMPLESStrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPLESStrue ((stacklem2b p q x)) x₁
+  stacklem2a' p q {pc = (+ pc)} (⊢JMPGEtrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPGEtrue ((stacklem2b p q x)) x₁
+  stacklem2a' p q (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse (stacklem2b p q x) x₁
+
+  stacklem2aux1 : ∀ {q a f σ s pc σ' s' pc'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , a ⟧ → a ≡ f → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧
+  stacklem2aux1 sem prf rewrite prf = sem
+
+  stacklem2aux2 : ∀ {q a f σ' s' pc' σ'' s'' pc'' f'} → q ⊢⟦ config σ' s' pc' , a ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧ → a ≡ f → q ⊢⟦ config σ' s' pc' , f ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧
+  stacklem2aux2 sem prf rewrite prf = sem
+
+  -- Adding instructions on the LHS increments the program counter by the amount of instructions added. --
+  stacklem2 : ∀ p q {σ s f pc pc' σ' s' f'} → q ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , f ⟧⇒*⟦ config σ' s' (pc' z+ size p) , f' ⟧
+  stacklem2 p q none = none
+  stacklem2 p q (some {c = config σ s pc} {config σ' s' pc'} {config σ'' s'' pc''} {suc f} {a} one rest) = some {c = config σ s (pc z+ size p)} {config σ' s' (pc' z+ size p)} (stacklem2a' p q {pc = pc} {pc'} (stacklem2aux1 one (fdecone one))) (stacklem2 p q {f = f} {pc'} {pc''} (stacklem2aux2 rest (fdecone one)))
+  stacklem2 p q {f = 0} (some () rest)  
+
+
+
+  -----------------------
+  -- Proofs about fuel --
+  -----------------------
   
   fdecone' : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → f' < f
   fdecone' (⊢LOADI x)           = ≤-refl
@@ -66,34 +142,67 @@ module Proofs.Stack where
   fdec {f = suc f} (some one rest) rewrite fdecone one = ≤s f (fdec rest)
 
 
-  stacklem1a : ∀ p q {pc a} → p ፦ pc ≡ just a → p ፦ pc ≡ (p & q) ፦ pc
-  stacklem1a [] _ ()
-  stacklem1a p [] _ rewrite &[] {p} = refl
-  stacklem1a (p :: ps) q {+ 0} _ = refl
-  stacklem1a (p :: ps) q {+ (suc n)} x = stacklem1a ps q x
-  stacklem1a (p :: ps) q { -[1+ n ]} ()
 
-  stacklem1b : ∀ p q {pc a} → p ፦ pc ≡ just a → (p & q) ፦ pc ≡ just a
-  stacklem1b p q j rewrite (sym j) = sym (stacklem1a p q j)
+    ----------------------------------
+    -- Adding and substracting fuel --
+    ----------------------------------
 
 
-  stacklem1c : ∀ {p q c c' f f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → (p & q) ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
-  stacklem1c {p} {q} (⊢LOADI prf) = ⊢LOADI (stacklem1b p q prf)
-  stacklem1c {p} {q} (⊢LOAD prf) = ⊢LOAD (stacklem1b p q prf)
-  stacklem1c {p} {q} (⊢ADD prf) = ⊢ADD (stacklem1b p q prf)
-  stacklem1c {p} {q} (⊢STORE prf) = ⊢STORE (stacklem1b p q prf)
-  stacklem1c {p} {q} (⊢JMP prf) = ⊢JMP (stacklem1b p q prf)
-  stacklem1c {p} {q} (⊢JMPLESStrue prf ltc) = ⊢JMPLESStrue (stacklem1b p q prf) ltc
-  stacklem1c {p} {q} (⊢JMPLESSfalse prf ltc) = ⊢JMPLESSfalse (stacklem1b p q prf) ltc
-  stacklem1c {p} {q} (⊢JMPGEtrue prf ltc) = ⊢JMPGEtrue (stacklem1b p q prf) ltc
-  stacklem1c {p} {q} (⊢JMPGEfalse prf ltc) = ⊢JMPGEfalse (stacklem1b p q prf) ltc
+  addF : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧
+  addF n (⊢LOADI x) = ⊢LOADI x
+  addF n (⊢LOAD x₁) = ⊢LOAD x₁
+  addF n (⊢STORE x₁) = ⊢STORE x₁
+  addF n (⊢ADD x) = ⊢ADD x
+  addF n (⊢JMP x) = ⊢JMP x
+  addF n (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
+  addF n (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
+  addF n (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
+  addF n (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
 
-  stacklem1 : ∀ {p q c c' f f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → (p & q) ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
-  stacklem1 none = none
-  stacklem1 (some one then) = some (stacklem1c one) (stacklem1 then)
+  decF : ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
+ 
+  decF  (⊢LOADI x) = ⊢LOADI x
+  decF  (⊢LOAD x₁) = ⊢LOAD x₁
+  decF  (⊢STORE x₁) = ⊢STORE x₁
+  decF  (⊢ADD x) = ⊢ADD x
+  decF  (⊢JMP x) = ⊢JMP x
+  decF  (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
+  decF  (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
+  decF  (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
+  decF  (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
 
+  subF : ∀ {p c f c' f'}(n : ℕ)(ineq : 0 < f) → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
+  subF {f = 0} _ ()
+  subF {f = suc f} {f' = f'} 0 ineq stp rewrite +comm f 0 | +comm f' 0 = stp
+  subF {f = suc f} {f' = f'} (suc n) ineq stp rewrite sym (+swap {f} {n}) | sym (+swap {f'} {n}) = subF n ineq (decF stp)
   
+  addF* : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧
+  addF* n none = none
+  addF* n (some one rest) = some (addF n one) (addF* n rest)
 
+  sucF* : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧
+  sucF* {f = f} {f' = f'} x rewrite +comm 1 f | +comm 1 f' = addF* 1 x
+
+  dec'F* :  ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  dec'F* none = none
+  dec'F* {f = suc f} (some one rest) with fdecone one
+  ... | z rewrite z  = some (decF one) (dec'F* rest)
+  dec'F* {f = zero} (some one rest) with fdecone one
+  ... | z rewrite z with fdec rest
+  ... | ()
+
+  subF* : ∀ {p c f c' f'} n → p ⊢⟦ c , n + f ⟧⇒*⟦ c' , n + f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  subF* 0 sem = sem
+  subF* (suc n) sem = subF* n (dec'F* sem)
+
+  subF*' : ∀ {p c f c' f'} n → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  subF*' {f = f} {f' = f'} n sem rewrite +comm f n | +comm f' n = subF* n sem
+
+
+
+  -----------------
+  -- Determinism --
+  -----------------
 
   nothing≡pc : ∀ {σ s pc σ' s' pc' f f'} → [] ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → pc ≡ pc'
   nothing≡pc none = refl
@@ -155,12 +264,6 @@ module Proofs.Stack where
   nothing≡f (some (⊢JMPGEtrue () _) _)
   nothing≡f (some (⊢JMPLESSfalse () _) _)
   nothing≡f (some (⊢JMPGEfalse () _) _)
-
-
-  pclem1 : ∀ {p q pc} → sign pc ≡ ⊹ → (p & q) ፦ (pc z+ size p) ≡ q ፦ pc
-  pclem1 {[]} {q} {pc} _ rewrite +-identityʳ pc = refl
-  pclem1 {x :: xs} {q} {+ n} prf rewrite +-comm (+ n) (size (x :: xs)) | +comm (size` xs) n = pclem1 {xs} {q} {+ n} prf
-  pclem1 {x :: xs} {q} { -[1+ n ]} ()
 
   nofᴸ : ∀ {p f σ s pc σ' s' pc'} → p ⊢⟦ config σ s pc , 0 ⟧⇒*⟦ config σ' s' pc' , f ⟧ →  σ ≡ σ'
   nofᴸ none = refl
@@ -510,75 +613,7 @@ module Proofs.Stack where
   deterministic' {x :: xs} {config σ s pc} sem1 none rewrite noexec sem1 = refl
   deterministic' {x :: xs} {config σ s pc} {0} (some () rest)
   deterministic' {x :: xs} {config σ s pc} {suc f} (some one rest) (some one' rest') rewrite fdecone one' | fdecone one | detstep one one' = deterministic' rest rest'
-
-  stacklem2b : ∀ p q {pc i} → q ፦ pc ≡ just i → (p & q) ፦ (pc z+ size p) ≡ just i
-  stacklem2b [] q {pc} prf rewrite sym (prf) | z+0 pc = refl
-  stacklem2b (i :: is) q {+ 0} prf rewrite 0+z (size (i :: is)) = stacklem2b is q prf
-  stacklem2b (i :: is) q {+ (suc n)} prf rewrite +comm n (suc (size` is)) | +comm (size` is) n = stacklem2b is q prf
-  stacklem2b (i :: is) [] { -[1+ _ ]} ()
-  stacklem2b (i :: is) (q :: qs) { -[1+ _ ]} ()
-
-  stacklem2c : ∀ p i is → (p & i :: is) ፦ (size p) ≡ just i
-  stacklem2c [] i is = refl
-  stacklem2c (x :: xs) i is = stacklem2c xs i is
   
-  stacklem2a : ∀ p q {σ s f pc' σ' s' f'} → q ⊢⟦ config σ s (+ 0) , f ⟧⇒⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (size p) , f ⟧⇒⟦ config σ' s' (size p z+ pc') , f' ⟧
-  stacklem2a p q (⊢LOADI x) rewrite +comm (size` p) 1 = ⊢LOADI (stacklem2b p q x)
-  stacklem2a p q (⊢LOAD x) rewrite +comm (size` p) 1 = ⊢LOAD (stacklem2b p q x)
-  stacklem2a p q (⊢STORE x) rewrite +comm (size` p) 1 = ⊢STORE (stacklem2b p q x)
-  stacklem2a p q (⊢ADD x) rewrite +comm (size` p) 1 = ⊢ADD (stacklem2b p q x)
-  stacklem2a p q (⊢JMP {offset = o} x) rewrite sym (+-assoc (size p) (+ 1) o) | +comm (size` p) 1 = ⊢JMP (stacklem2b p q x)
-  stacklem2a p q (⊢JMPLESSfalse x x₁) rewrite +comm (size` p) 1 = ⊢JMPLESSfalse (stacklem2b p q x) x₁
-  stacklem2a p q (⊢JMPLESStrue {offset = o} x x₁) rewrite sym (+-assoc (size p) (+ 1) o) | +comm (size` p) 1 = ⊢JMPLESStrue ((stacklem2b p q x)) x₁
-  stacklem2a p q (⊢JMPGEtrue {offset = o} x x₁) rewrite sym (+-assoc (size p) (+ 1) o) | +comm (size` p) 1 = ⊢JMPGEtrue ((stacklem2b p q x)) x₁
-  stacklem2a p q (⊢JMPGEfalse x x₁) rewrite +comm (size` p) 1 = ⊢JMPGEfalse (stacklem2b p q x) x₁
-
-{-
-  stacklem2c : ∀ p i is {c c' f f'} → ((p & (i :: [])) & is) ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → (p & i :: is) ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ 
-  stacklem2c = {!!}
--}
-  stacklem2d : ∀ p n → size p z+ + suc n ≡ + suc ( size` p + n)
-  stacklem2d [] n = refl
-  stacklem2d (i :: is) n rewrite +comm (size` is) n | +comm (size` is) (suc n) = refl
-
-
-
-  addF : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧
-  addF n (⊢LOADI x) = ⊢LOADI x
-  addF n (⊢LOAD x₁) = ⊢LOAD x₁
-  addF n (⊢STORE x₁) = ⊢STORE x₁
-  addF n (⊢ADD x) = ⊢ADD x
-  addF n (⊢JMP x) = ⊢JMP x
-  addF n (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
-  addF n (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
-  addF n (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
-  addF n (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
-
-  decF : ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
- 
-  decF  (⊢LOADI x) = ⊢LOADI x
-  decF  (⊢LOAD x₁) = ⊢LOAD x₁
-  decF  (⊢STORE x₁) = ⊢STORE x₁
-  decF  (⊢ADD x) = ⊢ADD x
-  decF  (⊢JMP x) = ⊢JMP x
-  decF  (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
-  decF  (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
-  decF  (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
-  decF  (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
-
-  subF : ∀ {p c f c' f'}(n : ℕ)(ineq : 0 < f) → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
-  subF {f = 0} _ ()
-  subF {f = suc f} {f' = f'} 0 ineq stp rewrite +comm f 0 | +comm f' 0 = stp
-  subF {f = suc f} {f' = f'} (suc n) ineq stp rewrite sym (+swap {f} {n}) | sym (+swap {f'} {n}) = subF n ineq (decF stp)
-  
-  addF* : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧
-  addF* n none = none
-  addF* n (some one rest) = some (addF n one) (addF* n rest)
-
-  sucF* : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧
-  sucF* {f = f} {f' = f'} x rewrite +comm 1 f | +comm 1 f' = addF* 1 x
-
-
   detstep' : ∀ {p f c c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧ → c'' ≡ c'
   detstep' {[]}  (⊢LOADI ()) sem2 
   detstep' {[]}  (⊢LOAD ()) sem2
@@ -891,48 +926,6 @@ module Proofs.Stack where
   ... | z = ⊥-elim (s≤→⊥ z)
   split (some one' rest') on (some one rest) ⊢ w with ≤trans (s≤s (fdec rest')) (fdecone' one')
   ... | z = split spliton' (s≤→¬≡ z) (some one' rest') one on rest ⊢ w
-
---≤trans (s≤s (fdec rest')) (fdecone' one')
---  ... | w = split (spliton' (s≤→¬≡ w) (some one' rest') one) on rest
-
-  
-  stacklem2a' : ∀ p q {σ s f pc pc' σ' s'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , suc f ⟧⇒⟦ config σ' s' (pc' z+ size p) , f ⟧
-  stacklem2a' p q (⊢LOADI x) = ⊢LOADI (stacklem2b p q x)
-  stacklem2a' p q (⊢LOAD x) = ⊢LOAD (stacklem2b p q x)
-  stacklem2a' p q (⊢STORE x) = ⊢STORE (stacklem2b p q x)
-  stacklem2a' p q (⊢ADD x) = ⊢ADD (stacklem2b p q x)
-  stacklem2a' p q {pc = (+ pc)} (⊢JMP {offset = o} x) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMP (stacklem2b p q x)
-  stacklem2a' p q (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse (stacklem2b p q x) x₁
-  stacklem2a' p q {pc = (+ pc)} (⊢JMPLESStrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPLESStrue ((stacklem2b p q x)) x₁
-  stacklem2a' p q {pc = (+ pc)} (⊢JMPGEtrue {offset = o} x x₁) rewrite +-assoc (+ suc pc) o (+ size` p) | +-comm o (+ size` p) | sym ( +-assoc (+ suc pc) (+ size` p) o) = ⊢JMPGEtrue ((stacklem2b p q x)) x₁
-  stacklem2a' p q (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse (stacklem2b p q x) x₁
-
-  stacklem2aux1 : ∀ {q a f σ s pc σ' s' pc'} → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , a ⟧ → a ≡ f → q ⊢⟦ config σ s pc , suc f ⟧⇒⟦ config σ' s' pc' , f ⟧
-  stacklem2aux1 sem prf rewrite prf = sem
-
-  stacklem2aux2 : ∀ {q a f σ' s' pc' σ'' s'' pc'' f'} → q ⊢⟦ config σ' s' pc' , a ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧ → a ≡ f → q ⊢⟦ config σ' s' pc' , f ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧
-  stacklem2aux2 sem prf rewrite prf = sem
- 
-  stacklem2 : ∀ p q {σ s f pc pc' σ' s' f'} → q ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ → (p & q) ⊢⟦ config σ s (pc z+ size p) , f ⟧⇒*⟦ config σ' s' (pc' z+ size p) , f' ⟧
-  stacklem2 p q none = none
-  stacklem2 p q (some {c = config σ s pc} {config σ' s' pc'} {config σ'' s'' pc''} {suc f} {a} one rest) = some {c = config σ s (pc z+ size p)} {config σ' s' (pc' z+ size p)} (stacklem2a' p q {pc = pc} {pc'} (stacklem2aux1 one (fdecone one))) (stacklem2 p q {f = f} {pc'} {pc''} (stacklem2aux2 rest (fdecone one)))
-  stacklem2 p q {f = 0} (some () rest)
-
-
-  dec'F* :  ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
-  dec'F* none = none
-  dec'F* {f = suc f} (some one rest) with fdecone one
-  ... | z rewrite z  = some (decF one) (dec'F* rest)
-  dec'F* {f = zero} (some one rest) with fdecone one
-  ... | z rewrite z with fdec rest
-  ... | ()
-
-  subF* : ∀ {p c f c' f'} n → p ⊢⟦ c , n + f ⟧⇒*⟦ c' , n + f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
-  subF* 0 sem = sem
-  subF* (suc n) sem = subF* n (dec'F* sem)
-
-  subF*' : ∀ {p c f c' f'} n → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
-  subF*' {f = f} {f' = f'} n sem rewrite +comm f n | +comm f' n = subF* n sem
 
   deterministic-config : ∀ {p f c c' f' c''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒*⟦ c'' , f' ⟧ → c'' ≡ c'
   deterministic-config none none = refl

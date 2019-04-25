@@ -19,13 +19,13 @@ module Proofs.ArithSemantics where
 
   open import Relation.Binary.PropositionalEquality hiding (inspect)
   
---------------------------------------------------------------------
--- Lemma(1)'s -- Proofs for semantics over arithmetic expressions --
---------------------------------------------------------------------
+------------------------------------------------------
+-- Proofs for semantics over arithmetic expressions --
+------------------------------------------------------
 
   Lemma1a : ∀ a x σ σ' s f → (acomp a) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , suc f ⟧ → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config σ' s (+ suc (size` (acomp a))) , f ⟧ → σ' ≡ ((x ≔ (aexe a σ)) ∷ σ)
   Lemma1a a x σ σ' s f asem sem with (stacklem1 {q = STORE x :: []} asem)
-  ... | w with insertAtEnd w (⊢STORE {x = x} (pclem1 {acomp a} {STORE x :: []} {+ 0} refl))
+  ... | w with insertAtEnd w (⊢STORE {x = x} (stacklem2b (acomp a) (STORE x :: []) {+ 0} refl))
   ... | w' = deterministic w' sem
 
   Lemma1f : ∀ e {p c f c' f'} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c , e ℕ+ f ⟧⇒⟦ c' , e ℕ+ f' ⟧

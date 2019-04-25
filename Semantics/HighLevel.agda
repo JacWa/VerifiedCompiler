@@ -7,58 +7,11 @@ module Semantics.HighLevel where
   open import Relation.Nullary
   open import Agda.Builtin.Bool
 
-    -- Small step semantics.
-  data ⟦_,_,_⟧↦⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
+  -----------------------------------------------
+  -- Big step semantics on high level commands --
+  -----------------------------------------------
 
-    empty : ∀ {σ I} → ¬ I ≡ SKIP → ⟦ σ , I , 0 ⟧↦⟦ σ , SKIP , 0 ⟧ 
-
-    assign  : ∀ {x n s f} →
-                            ---------------------------------------------------
-                             ⟦ s , (x ≔ n) , (suc f) ⟧↦⟦ (x ≔ (aexe n s)) ∷ s , SKIP , f ⟧
-
-
-    seqskip : ∀ {s that f} →
-                            ----------------------------------
-                             ⟦ s , SKIP ⋯ that , (suc f) ⟧↦⟦ s , that , f ⟧
-
-
-    seqstep : ∀ {this s s' this' that f} →         ⟦ s , this , suc f ⟧↦⟦ s' , this' , f ⟧ →
-                                           ---------------------------------------------------
-                                            ⟦ s , this ⋯ that , suc f ⟧↦⟦ s' , this' ⋯ that , f ⟧
-
-
-    iftrue  : ∀ {s b i i' f} →                  (bexe b s) ≡ true →
-                                     ---------------------------------------
-                                      ⟦ s , IF b THEN i ELSE i' , suc f ⟧↦⟦ s , i , f ⟧
-
-
-    iffalse : ∀ {s b i i' f} →                  (bexe b s) ≡ false →
-                                     ----------------------------------------
-                                      ⟦ s , IF b THEN i ELSE i' , suc f ⟧↦⟦ s , i' , f ⟧
-                                      
-    whilefalse   : ∀ {s b c f} →           bexe b s ≡ false →
-                                  -----------------------------------
-                                   ⟦ s , WHILE b DO c , suc f ⟧↦⟦ s , SKIP , f ⟧
-
-
-    whiletrue   : ∀ {s b c f} →                         bexe b s ≡ true →
-                                  ---------------------------------------------------
-                                   ⟦ s , WHILE b DO c , suc f ⟧↦⟦ s , (c ⋯ (WHILE b DO c)) , f ⟧
-
-
-
-  data ⟦_,_,_⟧↦*⟦_,_,_⟧ : State → IExp → ℕ → State → IExp → ℕ → Set where
-
-    done : ∀ {σ f I} → ⟦ σ , I , f ⟧↦*⟦ σ , I , f ⟧
-    
-    step : ∀ {σ I f σ' I' f' σ'' I'' f''} → ⟦ σ , I , f ⟧↦⟦ σ' , I' , f' ⟧ → ⟦ σ' , I' , f' ⟧↦*⟦ σ'' , I'' , f'' ⟧ →
-                                            --------------------------------------------------------------------------
-                                                              ⟦ σ , I , f ⟧↦*⟦ σ'' , I'' , f'' ⟧
-    
-    
-
-  -- Big step semantics.
-  data ⟦_,_,_⟧⇛⟦_,_⟧ : (I : IExp)(σ : State)(fuel : ℕ)(σ' : State)(fuel' : ℕ) → Set where
+  data ⟦_,_,_⟧⇛⟦_,_⟧ : (I : IExp)(σ : Store)(fuel : ℕ)(σ' : Store)(fuel' : ℕ) → Set where
 
     Empty      : ∀ {I s} → ------------------------------------
                                 ⟦ I , s , 0 ⟧⇛⟦ s , 0 ⟧
@@ -104,7 +57,7 @@ module Semantics.HighLevel where
 
   
   -- Big step semantics on AExp.
-  data ⟦_,_⟧ᴬ⇛_ : AExp → State → ℕ → Set where
+  data ⟦_,_⟧ᴬ⇛_ : AExp → Store → ℕ → Set where
 
     Nat : ∀ {n s} → ⟦ NAT n , s ⟧ᴬ⇛ n
     Vrr : ∀ {x s} → ⟦ VAR x , s ⟧ᴬ⇛ (get-var x s)
@@ -121,7 +74,7 @@ module Semantics.HighLevel where
 
 
   -- Big step semantics on BExp.
-  data ⟦_,_⟧ᴮ⇛_ : BExp → State → Bool → Set where
+  data ⟦_,_⟧ᴮ⇛_ : BExp → Store → Bool → Set where
 
     Lit : ∀ {b s} → ⟦ BOOL b , s ⟧ᴮ⇛ b
     Not : ∀ {e b s} → ⟦ e , s ⟧ᴮ⇛ b →

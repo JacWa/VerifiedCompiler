@@ -2,6 +2,9 @@ module Base.Tuple where
 
   open import Level
 
+  ------------------------------
+  -- Module for simple tuples --
+  ------------------------------
   infixr 6 _×_ _,_
   data _×_ {a b}(A : Set a)(B : Set b) : Set (a ⊔ b) where
     _,_ : (x : A)(y : B) → A × B
