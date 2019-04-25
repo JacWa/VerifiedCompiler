@@ -127,3 +127,8 @@ module Proofs.SeqComp where
   seqlem2 (step (empty x) done) (step (empty x₁) (step (empty x₂) rest)) = ⊥-elim (x₂ refl)
   seqlem2 (step (empty x) (step (empty x₂) init)) (step (empty x₁) rest) = ⊥-elim (x₂ refl)
   seqlem2 (step x init) (step (seqstep x₁) rest) rewrite detstepHLσ x x₁ | detstepHLI' x x₁ | detstepHLf x x₁ = seqlem2 init rest
+
+{-
+  lllem1 : ∀ I I' f σ {s σ''} → (hlsem : ∃[ σ' ] ⟦ σ , I , f ⟧↦*⟦ σ' , SKIP , 0 ⟧) → (ifEnough I I' f σ) ≡ left (hlsem) → (compile P & compile Q) ⊢⟦ σ , s , (+ 0) , f ⟧⇒*⟦ σ'' , s , 0 ⟧
+  lllem1 = {!!}
+-}

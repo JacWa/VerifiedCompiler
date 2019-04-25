@@ -554,12 +554,30 @@ module Proofs.Stack where
   addF n (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
   addF n (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
 
+  decF : ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
+ 
+  decF  (⊢LOADI x) = ⊢LOADI x
+  decF  (⊢LOAD x₁) = ⊢LOAD x₁
+  decF  (⊢STORE x₁) = ⊢STORE x₁
+  decF  (⊢ADD x) = ⊢ADD x
+  decF  (⊢JMP x) = ⊢JMP x
+  decF  (⊢JMPLESSfalse x x₁) = ⊢JMPLESSfalse x x₁
+  decF  (⊢JMPLESStrue x x₁) = ⊢JMPLESStrue x x₁
+  decF  (⊢JMPGEtrue x x₁) = ⊢JMPGEtrue x x₁
+  decF  (⊢JMPGEfalse x x₁) = ⊢JMPGEfalse x x₁
+
+  subF : ∀ {p c f c' f'}(n : ℕ)(ineq : 0 < f) → p ⊢⟦ c , f + n ⟧⇒⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧
+  subF {f = 0} _ ()
+  subF {f = suc f} {f' = f'} 0 ineq stp rewrite +comm f 0 | +comm f' 0 = stp
+  subF {f = suc f} {f' = f'} (suc n) ineq stp rewrite sym (+swap {f} {n}) | sym (+swap {f'} {n}) = subF n ineq (decF stp)
+  
   addF* : ∀ {p c f c' f'}(n : ℕ) → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧
   addF* n none = none
   addF* n (some one rest) = some (addF n one) (addF* n rest)
 
   sucF* : ∀ {p c f c' f'} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧
   sucF* {f = f} {f' = f'} x rewrite +comm 1 f | +comm 1 f' = addF* 1 x
+
 
   detstep' : ∀ {p f c c' f' c'' f''} → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒⟦ c'' , f'' ⟧ → c'' ≡ c'
   detstep' {[]}  (⊢LOADI ()) sem2 
@@ -899,10 +917,18 @@ module Proofs.Stack where
   stacklem2 p q (some {c = config σ s pc} {config σ' s' pc'} {config σ'' s'' pc''} {suc f} {a} one rest) = some {c = config σ s (pc z+ size p)} {config σ' s' (pc' z+ size p)} (stacklem2a' p q {pc = pc} {pc'} (stacklem2aux1 one (fdecone one))) (stacklem2 p q {f = f} {pc'} {pc''} (stacklem2aux2 rest (fdecone one)))
   stacklem2 p q {f = 0} (some () rest)
 
-{-
-  stacklem2 [] q {pc' = pc} semq rewrite +-identityˡ pc = semq
-  stacklem2 (i :: is) q semq = {!!}
-  -}
 
+  dec'F* :  ∀ {p c f c' f'} → p ⊢⟦ c , suc f ⟧⇒*⟦ c' , suc f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  dec'F* none = none
+  dec'F* {f = suc f} (some one rest) with fdecone one
+  ... | z rewrite z  = some (decF one) (dec'F* rest)
+  dec'F* {f = zero} (some one rest) with fdecone one
+  ... | z rewrite z with fdec rest
+  ... | ()
 
-  
+  subF* : ∀ {p c f c' f'} n → p ⊢⟦ c , n + f ⟧⇒*⟦ c' , n + f' ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  subF* 0 sem = sem
+  subF* (suc n) sem = subF* n (dec'F* sem)
+
+  subF*' : ∀ {p c f c' f'} n → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
+  subF*' {f = f} {f' = f'} n sem rewrite +comm f n | +comm f' n = subF* n sem

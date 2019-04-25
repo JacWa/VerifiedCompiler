@@ -8,6 +8,7 @@ module Proofs.VerifiedCompilation where
   open import Proofs.Bool
   open import Proofs.Compiler
   open import Proofs.SeqComp
+  open import Proofs.BigStepHL
 
   open import Semantics.Build
   open import Semantics.LowLevel
@@ -24,8 +25,8 @@ module Proofs.VerifiedCompilation where
   open import Base.Tuple using (l; r; _×_) renaming (_,_ to _~_)
   open import Base.Existential
 
-  open import Data.Nat using (suc; _≤_) renaming (_+_ to _ℕ+_)
-  open import Data.Integer using (+_) renaming (_+_ to _ℤ+_; suc to zuc)
+  open import Data.Nat using (suc; _≤_; _≤?_) renaming (_+_ to _ℕ+_)
+  open import Data.Integer using (+_) renaming (_+_ to _z+_; suc to zuc)
   open import Data.Bool using (true; false; _≟_)
   open import Data.Maybe
   open import Data.Empty
@@ -81,7 +82,7 @@ module Proofs.VerifiedCompilation where
       Lemma2Aux2 : ∀ {a} {b} {y} {σ} {s} {f} → (acomp a & acomp b & JMPGE (+ size` y) :: y) ⊢⟦ config σ (aexe b σ , aexe a σ , s) (size (acomp a & acomp b)) , size` (JMPGE (+ size` y) :: []) ℕ+ f ⟧⇒⟦ config σ s (+ size` (acomp a & acomp b & JMPGE (+ size` y) :: y)) , f ⟧
       Lemma3 : ∀ b Q {f s σ} → bexe b σ ≡ true  → (bcomp b false (size Q) & Q) ⊢⟦ config σ s (+ 0) , (fuelLLb b false σ (size Q)) ℕ+ f ⟧⇒*⟦ config σ s (size (bcomp b false (size Q))) , f ⟧
   postulate
-    Lemma4 : ∀ {c} {b} {σ} → bexe b σ ≡ false → size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ≡ fuelLLb b false σ (_ℤ+_ (size (compile c)) (+ 1))
+    Lemma4 : ∀ {c} {b} {σ} → bexe b σ ≡ false → size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ≡ fuelLLb b false σ ((size (compile c)) z+ (+ 1))
 
     Lemma5 : ∀ {c b f σ σᴴᴸ σᴸᴸ f'}(rest : ⟦ σ , c ⋯ (WHILE b DO c) , f ⟧↦*⟦ σᴴᴸ , SKIP , f' ⟧) → (bcomp b false (+ (size` (compile c) ℕ+ 1)) & compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) ⊢⟦ config σ $ (+ 0) , fuelLLb b false σ (+ (size` (compile c) ℕ+ 1)) ℕ+ fuelLL (c ⋯ (WHILE b DO c)) f rest ⟧⇒*⟦ config σᴸᴸ $ (+ size` (bcomp b false (+ (size` (compile c) ℕ+ 1)) & compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: [])) , f' ⟧ → (compile c & (compile (WHILE b DO c))) ⊢⟦ config σ $ (+ 0) , fuelLL (c ⋯ (WHILE b DO c)) f rest ⟧⇒*⟦ config σᴸᴸ $ (size (compile c & (compile (WHILE b DO c)))) , f' ⟧
 
@@ -148,3 +149,76 @@ module Proofs.VerifiedCompilation where
   Lemma' (IF x THEN I ELSE I₁) (suc f) σ sem1 sem2 = {!!}
   Lemma' (WHILE x DO I)        (suc f) σ sem1 sem2 = {!!}
 -}
+
+
+  sem-HL-to-LL-step : ∀ {I I' f σ σ' s} → (hlstep : ⟦ σ , I , suc f ⟧↦⟦ σ' , I' , f ⟧) → ∃[ x ] (compile I ⊢⟦ config σ s (+ 0) , fuelLL' I hlstep ℕ+ f ⟧⇒*⟦ config σ' s x , f ⟧)
+  sem-HL-to-LL-step {_ ≔ a} assign = + suc (size` (acomp a)) ∣ makeArithSem {a}
+  sem-HL-to-LL-step seqskip = (+ 0) ∣ none
+  sem-HL-to-LL-step {_ ⋯ that} {s = s} (seqstep hlstep) with sem-HL-to-LL-step {s = s} hlstep
+  ... | x rewrite seqstp≡ {that} hlstep = fst x ∣ stacklem1 {q = compile that} (Σ.snd x)
+  sem-HL-to-LL-step {IF b THEN I ELSE I'} {f = f} {s = s} (iftrue x) rewrite x with Lemma3 b (compile I & JMP (+ size` (compile I')) :: []) {f} {s} x
+  ... | z rewrite size`&+ {compile I} {JMP (+ size` (compile I')) :: []} = + size` (bcomp b false (+ (size` (compile I) ℕ+ 1))) ∣ (stacklem1 {q = compile I'} z)
+  sem-HL-to-LL-step {IF b THEN I ELSE I'} {f = f} {s = s} (iffalse x) rewrite x with Lemma2 b (compile I & JMP (+ size` (compile I')) :: []) {f} {s} x
+  ... | z rewrite size`&+ {compile I} {JMP (+ size` (compile I')) :: []} = (+ size` (bcomp b false (+ (size` (compile I) ℕ+ 1)) & compile I & JMP (+ size` (compile I')) :: [])) ∣ (stacklem1 {q = compile I'} z)
+  sem-HL-to-LL-step {WHILE b DO c} {f = f} {s = s} (whilefalse x) rewrite x with Lemma2 b (compile c & JMP (neg (size (bcomp b false (size (compile c) z+ + 1)) z+ size (compile c) z+ + 1) ) :: []) {f} {s} x
+  ... | z rewrite size`&+ {compile c} {JMP (neg (size (bcomp b false (size (compile c) z+ + 1)) z+ size (compile c) z+ + 1)) :: []} = (+ size` (bcomp b false (+ (size` (compile c) ℕ+ 1)) & compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: [])) ∣ z
+  sem-HL-to-LL-step {WHILE b DO c} {f = f} {s = s} (whiletrue x) rewrite x with Lemma3 b (compile c & JMP (neg (size (bcomp b false (size (compile c) z+ + 1)) z+ size (compile c) z+ + 1) ) :: []) {f} {s} x
+  ... | z rewrite size`&+ {compile c} {JMP (neg (size (bcomp b false (size (compile c) z+ + 1)) z+ size (compile c) z+ + 1)) :: []} = (+ size` (bcomp b false (+ (size` (compile c) ℕ+ 1)))) ∣ z
+
+
+  sem-HL-to-LL : ∀ I {f σ σ'} → (hlsem : ⟦ σ , I , f ⟧↦*⟦ σ' , SKIP , 0 ⟧) → ∃[ x ] (compile I ⊢⟦ config σ $ (+ 0) , fuelLL _ _ hlsem  ⟧⇒*⟦ config σ' (l x) (r x) , 0 ⟧)
+  sem-HL-to-LL .SKIP {0} done = ($ ~ (+ 0)) ∣ none
+  sem-HL-to-LL I {0} (step (empty x) done) = ($ ~ (+ 0)) ∣ none
+  sem-HL-to-LL I {0} (step (empty x) (step (empty y) hlsem)) = ⊥-elim (y refl)
+  {-
+  sem-HL-to-LL I {suc f} (step x rest) with I ≟ⁱ SKIP
+  ... | yes refl = {!!}
+  ... | no ¬p with ¬SKIPf ¬p x
+  ... | z rewrite z with sem-HL-to-LL-step {s = $} x | sem-HL-to-LL _ rest
+  ... | pc' ∣ sem | stk ~ pc'' ∣ sem* = {!!}-}
+  
+  sem-HL-to-LL SKIP {suc f} (step () hlsem)
+  sem-HL-to-LL (x ≔ a) {suc .0} {σ} (step assign done) with Lemma1 {a} {x} {σ} {0}
+  ... | z = $ ~ + suc (size` (acomp a)) ∣ makeArithSem {a}
+  sem-HL-to-LL (x ≔ a) {suc .0} (step assign (step (empty y) hlsem)) = ⊥-elim (y refl)
+  sem-HL-to-LL (.SKIP ⋯ I₁) {suc f} (step seqskip hlsem) = sem-HL-to-LL I₁ hlsem
+  sem-HL-to-LL (I ⋯ I₁) {suc f} {σ} (step (seqstep y) hlsem) with sem-HL-to-LL-step {s = $} y
+  ... | pc' ∣ llstep = {!!}
+
+{-with ifEnough I I₁ f σ
+  ... | left  (σ' ∣ sem) with sem-HL-to-LL I sem
+  ... | s ~ pc ∣ llsem = {!!}
+  sem-HL-to-LL (I ⋯ I₁) {suc f} {σ} hlsem | right (σ' ∣ sem) = {!!}-}
+  sem-HL-to-LL (IF x THEN I ELSE I₁) {suc f} hlsem = {!!}
+  sem-HL-to-LL (WHILE x DO I) {suc f} (step (whilefalse p) hlsem) rewrite p = {!!}
+  sem-HL-to-LL (WHILE x DO I) {suc f} (step (whiletrue p) hlsem) rewrite p = {!!}
+
+
+  postulate
+    Lemma'-helper : ∀ {I σ σ' f f' pc'}  (semhl : ⟦ I , σ , suc f ⟧⇛⟦ σ' , suc f' ⟧)→ compile I ⊢⟦ config σ $ (+ 0) , fuelLLBS' semhl ℕ+ suc f' ⟧⇒*⟦ config σ' $ pc' , suc f' ⟧ → pc' ≡ size (compile I)
+
+  Lemma' : ∀ {I σ f f' σ' } → (semhl : ⟦ I , σ , f ⟧⇛⟦ σ' , f' ⟧) → ∃[ pc' ] (compile I ⊢⟦ config σ $ (+ 0) , fuelLLBS semhl ⟧⇒*⟦ config σ' $ pc' , f' ⟧)
+  Lemma' Empty = _ ∣ none
+  Lemma' Skip  = _ ∣ none
+  Lemma' {_ ≔ a} Assign = _ ∣ makeArithSem {a}
+  Lemma' {_ ⋯ I'} (Seq {f' = 0} semhl Empty) with Lemma' semhl
+  ... | pc' ∣ semll rewrite +0 ((fuelLLBS' semhl) ℕ+ 0) = pc' ∣ stacklem1 {q = compile I'} semll
+  Lemma' {I ⋯ I'} {σ} (Seq {s' = σ'}{f = f}{suc f'}{f''} semhl semhl') with Lemma' semhl | Lemma' semhl'
+  ... | pc' ∣ semll | pc'' ∣ semll' with suc f' ≤? (fuelLLBS' semhl' ℕ+ f'')
+  ... | yes p with NatLem2 (suc f') (fuelLLBS' semhl' ℕ+ f'') p
+  ... | ε ∣ z with stacklem1 {q = compile I'} semll
+  ... | semll* rewrite sym (+assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f'') | sym z | +assoc (fuelLLBS' semhl) f' ε with Lemma'-helper semhl semll | stacklem2 (compile I) (compile I') semll'
+  ... | prf | semll'* rewrite sym prf = pc'' z+ pc' ∣ insertAtEnd* (helper) semll'* --helper {I} {I'}
+    where
+    helper : (compile I & compile I') ⊢⟦ config σ $ (+ 0) , fuelLLBS' semhl ℕ+ suc (f' ℕ+ ε) ⟧⇒*⟦ config σ' $ pc' , suc (f' ℕ+ ε) ⟧
+    helper rewrite +assoc (fuelLLBS' semhl) (suc f') ε = addF* ε semll*
+
+  Lemma' {I ⋯ I'} (Seq {f = f}{suc f'}{f''} semhl semhl') | pc' ∣ semll | pc'' ∣ semll' | no ¬p rewrite +comm (fuelLLBS' semhl) (suc f') | +comm f' (fuelLLBS' semhl) | sym (+0 (suc f')) | +comm (fuelLLBS' semhl) f' with addF* (fuelLLBS' semhl' ℕ+ f'') (stacklem1 {q = compile I'} (subF* {f' = 0} (suc f') semll))
+  ... | semll* rewrite +assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f'' with stacklem2 (compile I) _ semll'
+  ... | semll'* rewrite +comm (suc f') (fuelLLBS' semhl) | +0 f' | Lemma'-helper semhl semll = pc'' z+ + size` (compile I) ∣ (insertAtEnd* (semll*) semll'*)
+
+  Lemma' (IfFalse x semhl) = {!!}
+  Lemma' (IfTrue x semhl) = {!!}
+  Lemma' (WhileFalse x) = {!!}
+  Lemma' (WhileTrue x semhl semhl₁) = {!!}
+

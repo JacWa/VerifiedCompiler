@@ -66,6 +66,10 @@ module Proofs.ArithSemantics where
   Lemma1 {a} {x} {σ} {f} {σᴸᴸ} w with Lemma1b' a {σ} {$} {suc f}
   ... | w' rewrite +comm (size` (acomp a)) (suc f) | +comm f (size` (acomp a)) | Lemma1a a x σ σᴸᴸ $ f w' w = refl
 
+  makeArithSem : ∀ {a σ f x s} → ((acomp a) & STORE x :: []) ⊢⟦ config σ s (+ 0) , suc (size` (acomp a) ℕ+ f) ⟧⇒*⟦ config ((x ≔ (aexe a σ)) ∷ σ) s (+ suc (size` (acomp a))) , f ⟧
+  makeArithSem {a} {σ} {f} {s = s} with Lemma1b' a {σ} {s} {suc f}
+  ... | z rewrite +swap {size` (acomp a)} {f} = insertAtEnd (stacklem1 {q = STORE _ :: []} z) (⊢STORE (stacklem2c (acomp a) (STORE _) []))
+
 
   Lemma1' : ∀ {a rest σ s f} → ((acomp a) & rest) ⊢⟦ config σ s (+ 0) , size` (acomp a & rest) ℕ+ f ⟧⇒*⟦ config σ (aexe a σ , s) (size (acomp a)) , size` rest ℕ+ f ⟧
   Lemma1' {a} {rest} {f = f} rewrite size`&+ {acomp a} {rest} | sym (+assoc (size` (acomp a)) (size` rest) (f)) = stacklem1 (Lemma1b' a)

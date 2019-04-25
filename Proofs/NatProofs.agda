@@ -1,9 +1,14 @@
 module Proofs.NatProofs where
 
     open import Data.Nat.Base
+    open import Data.Nat.Properties using ()
+    open import Data.Empty
+    open import Relation.Nullary
     open import Relation.Nullary.Decidable
     open import Agda.Builtin.Equality
     open import Proofs.Basic
+    open import Base.Existential
+    open import Agda.Builtin.Sigma
 
     1+≡suc : ∀ n → suc n ≡ 1 + n
     1+≡suc n = refl
@@ -139,3 +144,20 @@ module Proofs.NatProofs where
     ≤≥= : ∀ {x y} → x ≤ y → y ≤ x → x ≡ y
     ≤≥= z≤n z≤n = refl
     ≤≥= (s≤s i1) (s≤s i2) rewrite ≤≥= i1 i2 = refl
+
+    NatLem1 : ∀ x y z → suc (x + y + z) ≡ x + (suc y) + z
+    NatLem1 x y z rewrite sym (+swap {x} {y}) | sym (+assoc (suc x) y z) = refl
+
+    NatLem2 : ∀ x y → x ≤ y → ∃[ ε ] (x + ε ≡ y)
+    NatLem2 0 y p = y , refl
+    NatLem2 (suc x) (suc y) (s≤s p) with NatLem2 x y p
+    ... | ε , prf rewrite sym prf = ε , refl
+
+    NatLem3' : ∀ x y → ¬ x ≤ y → suc y ≤ x
+    NatLem3' 0 y ¬p = ⊥-elim (¬p z≤n)
+    NatLem3' (suc x) 0 ¬p = s≤s z≤n
+    NatLem3' (suc x) (suc y) ¬p = s≤s (NatLem3' x y (λ z → ¬p (s≤s z)))
+
+    NatLem3 : ∀ x y → ¬ x ≤ y → ∃[ ε ] (suc y + ε ≡ x)
+    NatLem3 x y ¬p with NatLem3' x y ¬p
+    ... | ineq = NatLem2 (suc y) x ineq
