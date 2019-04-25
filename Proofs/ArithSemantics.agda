@@ -100,7 +100,10 @@ module Proofs.ArithSemantics where
 
     ArithExecAux3 : ∀ {this a b that} → ((this & acomp a & (acomp b & ADD :: []) & that) ፦ (+ size` (acomp b & acomp a & this))) ≡ just ADD
     ArithExecAux3 {this} {a} {b} {that} rewrite sym (&assoc (acomp b) (ADD :: []) that) | &assoc (acomp a) (acomp b) (ADD :: that) | &assoc this (acomp a & acomp b) (ADD :: that) | size`&+ {acomp b} {acomp a & this} | size`&+ {acomp a} {this} | +comm (size` (acomp a)) (size` this) | +assoc (size` (acomp b)) (size` this) (size` (acomp a)) | +comm (size` (acomp b)) (size` this) | sym (+assoc (size` this) (size` (acomp b)) (size` (acomp a))) | +comm (size` (acomp b)) (size` (acomp a)) | sym (size`&+ {acomp a} {acomp b}) | sym (size`&+ {this} {acomp a & acomp b}) = stacklem2c (this & acomp a & acomp b) ADD that
-  
+
+
+  ArithFullExec : ∀ {n x σ f pc'} → (acomp n & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp n) ℕ+ suc f) ⟧⇒*⟦ config ((x ≔ aexe n σ) ∷ σ) $ pc' , suc f ⟧ → pc' ≡ size (acomp n & STORE x :: [])
+  ArithFullExec {n} {x} sem rewrite size`&+ {acomp n} {STORE x :: []} | +comm (size` (acomp n)) 1 = deterministic-pc (makeArithSem {n}) sem
 
   
 

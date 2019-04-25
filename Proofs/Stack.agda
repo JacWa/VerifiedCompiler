@@ -879,6 +879,7 @@ module Proofs.Stack where
   ... | ()
   detstep'f' {x :: xs} {suc f} sem1 sem2 = detstep'f sem1 sem2
 
+
   spliton' : ∀ {p c f c' f' c'' f''} → ¬ f ≡ f'' → p ⊢⟦ c , f ⟧⇒*⟦ c'' , f'' ⟧ → p ⊢⟦ c , f ⟧⇒⟦ c' , f' ⟧ → p ⊢⟦ c' , f' ⟧⇒*⟦ c'' , f'' ⟧
   spliton' w none x' = ⊥-elim (w refl)
   spliton' _ (some x w) x' rewrite detstep' x' x | detstep'f' x' x = w
@@ -932,3 +933,20 @@ module Proofs.Stack where
 
   subF*' : ∀ {p c f c' f'} n → p ⊢⟦ c , f + n ⟧⇒*⟦ c' , f' + n ⟧ → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧
   subF*' {f = f} {f' = f'} n sem rewrite +comm f n | +comm f' n = subF* n sem
+
+  deterministic-config : ∀ {p f c c' f' c''} → p ⊢⟦ c , f ⟧⇒*⟦ c' , f' ⟧ →  p ⊢⟦ c , f ⟧⇒*⟦ c'' , f' ⟧ → c'' ≡ c'
+  deterministic-config none none = refl
+  deterministic-config {f = 0} _ (some () rest)
+  deterministic-config {f = suc f} none (some one rest) with fdecone one
+  ... | z rewrite z with fdec rest
+  ... | p = ⊥-elim (s≤→⊥ p)
+  deterministic-config {f = 0} (some () rest) _
+  deterministic-config {f = suc f} (some one rest) none with fdecone one
+  ... | z rewrite z with fdec rest
+  ... | p = ⊥-elim (s≤→⊥ p)
+  deterministic-config (some one rest) (some one' rest') with detstep' one one' | detstep'f' one one'
+  ... | z | z' rewrite z | z' = deterministic-config rest rest'
+
+  deterministic-pc : ∀ {p f f' σ s pc σ' s' pc' σ'' s'' pc''} → p ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ' s' pc' , f' ⟧ →  p ⊢⟦ config σ s pc , f ⟧⇒*⟦ config σ'' s'' pc'' , f' ⟧ → pc'' ≡ pc'
+  deterministic-pc sem1 sem2 with deterministic-config sem1 sem2
+  ... | refl = refl
