@@ -48,7 +48,7 @@ module Proofs.VerifiedCompilation where
     Lemma' Skip  = _ ∣ none
 
     -- Assignment case.
-    Lemma' {_ ≔ a} Assign = _ ∣ makeArithSem {a}
+    Lemma' {_ ≔ a} Assign = _ ∣ Lemma1 {a}
   
   -- Sequential composition case where fuel runs out when executing first expression
     Lemma' {_ ⋯ I'} (Seq {f' = 0} semhl Empty) with Lemma' semhl
@@ -60,7 +60,7 @@ module Proofs.VerifiedCompilation where
     ... | yes p with NatLem2 (suc f') (fuelLLBS' semhl' ℕ+ f'') p
     ... | ε ∣ z with stacklem1 {q = compile I'} semll
     ... | semll* rewrite sym (+assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f'') | sym z | +assoc (fuelLLBS' semhl) f' ε with Lemma'-helper semhl semll | stacklem2 (compile I) (compile I') semll'
-    ... | prf | semll'* rewrite sym prf = pc'' z+ pc' ∣ insertAtEnd* (helper) semll'* 
+    ... | prf | semll'* rewrite sym prf = pc'' z+ pc' ∣ TransComp* (helper) semll'* 
       where
       helper : (compile I & compile I') ⊢⟦ config σ $ (+ 0) , fuelLLBS' semhl ℕ+ suc (f' ℕ+ ε) ⟧⇒*⟦ config σ' $ pc' , suc (f' ℕ+ ε) ⟧
       helper rewrite +assoc (fuelLLBS' semhl) (suc f') ε = addF* ε semll*
@@ -68,19 +68,19 @@ module Proofs.VerifiedCompilation where
     -- Sequential composition case where there is enough fuel to execute at least the first expression, but the second expression requires less fuel when compiled to LL than in HL. This could possibly be joined with the above case, but is seperate for ease of proof.
     Lemma' {I ⋯ I'} (Seq {f = f}{suc f'}{f''} semhl semhl') | pc' ∣ semll | pc'' ∣ semll' | no ¬p rewrite +comm (fuelLLBS' semhl) (suc f') | +comm f' (fuelLLBS' semhl) | sym (+0 (suc f')) | +comm (fuelLLBS' semhl) f' with addF* (fuelLLBS' semhl' ℕ+ f'') (stacklem1 {q = compile I'} (subF* {f' = 0} (suc f') semll))
     ... | semll* rewrite +assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f'' with stacklem2 (compile I) _ semll'
-    ... | semll'* rewrite +comm (suc f') (fuelLLBS' semhl) | +0 f' | Lemma'-helper semhl semll = pc'' z+ + size` (compile I) ∣ (insertAtEnd* (semll*) semll'*)
+    ... | semll'* rewrite +comm (suc f') (fuelLLBS' semhl) | +0 f' | Lemma'-helper semhl semll = pc'' z+ + size` (compile I) ∣ (TransComp* (semll*) semll'*)
 
     --IfFalse case
     Lemma' {IF b THEN P ELSE Q} {σ} {f' = f'} (IfFalse x semhl) rewrite x with stacklem1 {q = compile Q} (Lemma2 b (compile P & JMP (+ size` (compile Q)) :: []) {fuelLLBS' semhl ℕ+ f'} {$} {σ} x) 
     ... | semll rewrite size`&+ {compile P} {JMP (+ size` (compile Q)) :: []} | +assoc (fuelLLb b false σ (+ (size` (compile P) ℕ+ 1))) (fuelLLBS' semhl) f' with Lemma' semhl
     ... | pc'' ∣ semll' with stacklem2 (bcomp b false (+ (size` (compile P) ℕ+ 1)) & compile P & JMP (+ size` (compile Q)) :: []) _ semll'
-    ... | semll'* = pc'' z+ + size` (bcomp b false (+ (size` (compile P) ℕ+ 1)) & compile P & JMP (+ size` (compile Q)) :: []) ∣ (insertAtEnd* semll semll'*)
+    ... | semll'* = pc'' z+ + size` (bcomp b false (+ (size` (compile P) ℕ+ 1)) & compile P & JMP (+ size` (compile Q)) :: []) ∣ (TransComp* semll semll'*)
 
   --IfTrue case.
     Lemma' {IF b THEN P ELSE Q} {σ} {f' = f'} (IfTrue x semhl) rewrite x with stacklem1 {q = compile Q} (Lemma3 b (compile P & JMP (+ size` (compile Q)) :: []) {fuelLLBS' semhl ℕ+ f'} {$} {σ} x)
     ... | semll rewrite size`&+ {compile P} {JMP (+ size` (compile Q)) :: []} | +assoc (fuelLLb b false σ (+ (size` (compile P) ℕ+ 1))) (fuelLLBS' semhl) f' with Lemma' semhl
     ... | pc'' ∣ semll' with stacklem1 {q = compile Q} (stacklem2 (bcomp b false (+ (size` (compile P) ℕ+ 1))) _ (stacklem1 {q = JMP (+ size` (compile Q)) :: []} semll'))
-    ... | semll'* = pc'' z+ + size` (bcomp b false (+ (size` (compile P) ℕ+ 1))) ∣ (insertAtEnd* semll semll'*)
+    ... | semll'* = pc'' z+ + size` (bcomp b false (+ (size` (compile P) ℕ+ 1))) ∣ (TransComp* semll semll'*)
 
   --WhileFalse case.
     Lemma' {WHILE b DO c} {σ} {f' = f'} (WhileFalse x) rewrite x with Lemma2 b (compile c & (JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: [])) {f'} {$} {σ} x
@@ -93,7 +93,7 @@ module Proofs.VerifiedCompilation where
     ... | semll rewrite size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} | +assoc (fuelLLb b false σ (+ (size` (compile c) ℕ+ 1))) (fuelLLBS' semhl ℕ+ (1 ℕ+ fuelLLBS' semhl')) f' | sym (+assoc (fuelLLBS' semhl) (suc (fuelLLBS' semhl')) f') with Lemma' semhl | Lemma' semhl'
     ... | pc' ∣ csemll | pc'' ∣ whilesemll with stacklem2 (bcomp b false (+ (size` (compile c) ℕ+ 1))) _ (stacklem1 {q = JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} csemll)
     ... | csemll' with addF* (suc (fuelLLBS' semhl') ℕ+ f') (subF*' {f' = 0} (suc f*) csemll')
-    ... | csemll'' rewrite +assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f' | Lemma'-helper semhl csemll = pc'' ∣ (insertAtEnd* semll (insertAtEnd* (insertAtEnd csemll'' helper) whilesemll))
+    ... | csemll'' rewrite +assoc (fuelLLBS' semhl) (fuelLLBS' semhl') f' | Lemma'-helper semhl csemll = pc'' ∣ (TransComp* semll (TransComp* (TransComp csemll'' helper) whilesemll))
       where
       helper : (bcomp b false (+ (size` (compile c) ℕ+ 1)) & compile c & JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) ⊢⟦ config σ' $ (+ (size` (compile c) ℕ+ size` (bcomp b false (+ (size` (compile c) ℕ+ 1))))) , suc (fuelLLBS' semhl' ℕ+ f') ⟧⇒⟦ config σ' $ (+ 0) , fuelLLBS' semhl' ℕ+ f' ⟧
       helper rewrite &assoc (bcomp b false (+ (size` (compile c) ℕ+ 1))) (compile c) (JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) | +comm (size` (compile c)) (size` (bcomp b false (+ (size` (compile c) ℕ+ 1)))) | sym (size`&+ {bcomp b false (+ (size` (compile c) ℕ+ 1))} {compile c}) with stacklem2b (bcomp b false (+ (size` (compile c) ℕ+ 1)) & compile c) (JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []) {+ 0} refl
@@ -104,7 +104,7 @@ module Proofs.VerifiedCompilation where
     Lemma' {WHILE b DO c} {σ} {f} {f'} (WhileTrue {s' = σ'}{f = suc f*}{0}{f**} x semhl Empty) rewrite x with Lemma3 b (compile c & (JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: [])) {fuelLLBS' semhl ℕ+ f'} {$} {σ} x
     ... | semll rewrite size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} | +comm (fuelLLBS' semhl) 0 | +0 (fuelLLb b false σ (+ (size` (compile c) ℕ+ 1)) ℕ+ fuelLLBS' semhl) with Lemma' semhl
     ... | pc' ∣ csemll with stacklem2 (bcomp b false (+ (size` (compile c) ℕ+ 1))) _ (stacklem1 {q = JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} csemll)
-    ... | csemll* rewrite +0 (fuelLLBS' semhl) = (pc' z+ + size` (bcomp b false (+ (size` (compile c) ℕ+ 1)))) ∣ insertAtEnd* semll csemll*
+    ... | csemll* rewrite +0 (fuelLLBS' semhl) = (pc' z+ + size` (bcomp b false (+ (size` (compile c) ℕ+ 1)))) ∣ TransComp* semll csemll*
 
 
 
@@ -113,17 +113,10 @@ module Proofs.VerifiedCompilation where
     ... | semll rewrite size`&+ {compile c} {JMP (neg (+ (size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ℕ+ size` (compile c) ℕ+ 1))) :: []} | +0 (fuelLLb b false σ (+ (size` (compile c) ℕ+ 1)) ℕ+ 0) = + size` (bcomp b false (+ (size` (compile c) ℕ+ 1))) ∣ semll
 
 
+    -- Given that a command executes to termination without running out of fuel, then the same command compiled
+    -- into SML will have a final program counter equal to the size of the program.
+    -- This equivalently means that if a command terminates, then the compiled program also terminates.
     postulate
       Lemma'-helper : ∀ {I σ σ' f f' pc'}  (semhl : ⟦ I , σ , suc f ⟧⇛⟦ σ' , suc f' ⟧)→ compile I ⊢⟦ config σ $ (+ 0) , fuelLLBS' semhl ℕ+ suc f' ⟧⇒*⟦ config σ' $ pc' , suc f' ⟧ → pc' ≡ size (compile I)
-    {-
-    Lemma'-helper Skip semll rewrite sym (nothing≡pc semll) = refl
-    Lemma'-helper (Assign {_} {a}) semll = ArithFullExec {a} semll
-    Lemma'-helper (Seq semhl semhl₁) semll = {!!}
-    Lemma'-helper (IfFalse x semhl) semll = {!!}
-    Lemma'-helper (IfTrue x semhl) semll = {!!}
-    Lemma'-helper (WhileFalse {σ} {b} {c} {suc f} x) semll with Lemma' (WhileFalse {σ} {b} {c} {suc f} x)
-    ... | pc' ∣ sem = {!!}
-    Lemma'-helper (WhileTrue x semhl semhl₁) semll = {!!}
--}
 
   

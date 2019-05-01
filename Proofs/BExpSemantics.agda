@@ -58,9 +58,9 @@ module Proofs.BExpSemantics where
     ... | no prf with ∧-false prf z | ¬-false prf
     ... | w | w' rewrite w' with Lemma3 a (bcomp b false (+ size` y) & y) {(fuelLLb b false σ (+ size` y) ℕ+ f)} {s} {σ} w'
     ... | w'' rewrite sym (+assoc (fuelLLb a false σ (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))) (fuelLLb b false σ (size y)) f) | size`&+ {bcomp b false (+ size` y)} {y} with bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))
-    ... | A rewrite size`&+ {A} {bcomp b false (+ size` y) & y} | +comm (size` A) (size` (bcomp b false (+ size` y) & y)) = insertAtEnd* w'' (stacklem2 A (bcomp b false (+ size` y) & y) (Lemma2 b y w))
+    ... | A rewrite size`&+ {A} {bcomp b false (+ size` y) & y} | +comm (size` A) (size` (bcomp b false (+ size` y) & y)) = TransComp* w'' (stacklem2 A (bcomp b false (+ size` y) & y) (Lemma2 b y w))
     Lemma2 (a LT b) y {f} {s} {σ} z rewrite sym (&assoc (acomp a) (acomp b & JMPGE (size y) :: []) y) | sym (&assoc (acomp b) (JMPGE (size y) :: []) y) | size`&+ {acomp a} {acomp b & JMPGE (+ size` y) :: []} | sym (+assoc (size` (acomp a)) (size` (acomp b & JMPGE (+ size` y) :: [])) f) with ArithExec {a} {[]} {acomp b & JMPGE (+ size` y) :: y} {σ} {s} {(size` (acomp b) ℕ+ 1) ℕ+ f}
-    ... | w rewrite +assoc (size` (acomp a)) (size` (acomp b) ℕ+ 1) f | sym (size`&+ {acomp b} {JMPGE (+ size` y) :: []}) = insertAtEnd* w (insertAtEnd (Lemma2Aux1 {a} {b}) (Lemma2Aux2 {a} {b} z))
+    ... | w rewrite +assoc (size` (acomp a)) (size` (acomp b) ℕ+ 1) f | sym (size`&+ {acomp b} {JMPGE (+ size` y) :: []}) = TransComp* w (TransComp (Lemma2Aux1 {a} {b}) (Lemma2Aux2 {a} {b} z))
 
 
     -- Lemma3 body
@@ -70,9 +70,9 @@ module Proofs.BExpSemantics where
     ... | no prf = ⊥-elim (∧-true prf z)
     ... | yes prf rewrite prf with Lemma3 a (bcomp b false (+ size` y) & y) {fuelLLb b false σ (+ size` y) ℕ+ f} {s} prf
     ... | asem rewrite size`&+ {bcomp b false (size y)} {y} | +assoc (fuelLLb a false σ (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))) (fuelLLb b false σ (+ size` y)) f with stacklem2 (bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))) _ (Lemma3 b y {f} {s} z)
-    ... | bsem rewrite +comm (size` (bcomp b false (size y))) (size` (bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y)))) | size`&+ {bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))} {bcomp b false (size y)} = insertAtEnd* asem bsem
+    ... | bsem rewrite +comm (size` (bcomp b false (size y))) (size` (bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y)))) | size`&+ {bcomp a false (+ (size` (bcomp b false (+ size` y)) ℕ+ size` y))} {bcomp b false (size y)} = TransComp* asem bsem
     Lemma3 (a LT b) y {f} {s} {σ} z rewrite sym (&assoc (acomp a) (acomp b & JMPGE (size y) :: []) y) | sym (&assoc (acomp b) (JMPGE (size y) :: []) y) | size`&+ {acomp a} {acomp b & JMPGE (+ size` y) :: []} | sym (+assoc (size` (acomp a)) (size` (acomp b & JMPGE (+ size` y) :: [])) f) with ArithExec {a} {[]} {acomp b & JMPGE (+ size` y) :: y} {σ} {s} {(size` (acomp b) ℕ+ 1) ℕ+ f}
-    ... | w rewrite +assoc (size` (acomp a)) (size` (acomp b) ℕ+ 1) f | sym (size`&+ {acomp b} {JMPGE (+ size` y) :: []}) = insertAtEnd* w (insertAtEnd (Lemma2Aux1 {a} {b}) (Lemma3Aux1 {a} {b} z))
+    ... | w rewrite +assoc (size` (acomp a)) (size` (acomp b) ℕ+ 1) f | sym (size`&+ {acomp b} {JMPGE (+ size` y) :: []}) = TransComp* w (TransComp (Lemma2Aux1 {a} {b}) (Lemma3Aux1 {a} {b} z))
 
     -- b evaluates to true and flag is true -> jump
     Lemma2' : ∀ b Q {f s σ} → bexe b σ ≡ true → (bcomp b true (size Q) & Q) ⊢⟦ config σ s (+ 0) , (fuelLLb b true σ (size Q)) ℕ+ f ⟧⇒*⟦ config σ s (size (bcomp b true (size Q) & Q)) , f ⟧
@@ -81,10 +81,10 @@ module Proofs.BExpSemantics where
     Lemma2' (a AND b) y {f} {s} {σ} z with bexe a σ ≟ true
     ... | no prf = ⊥-elim (∧-true prf z)
     ... | yes prf rewrite prf | sym (+assoc (fuelLLb a false σ (+ size` (bcomp b true (+ size` y)))) (fuelLLb b true σ (+ size` y)) f) with Lemma2' b y {f} {s} {σ} z
-    ... | w = insertAtEnd* (stacklem1 (Lemma3 a (bcomp b true (+ size` y)) prf)) (Lemma2'Aux1 {a} {b} {y} (stacklem2 (bcomp a false (+ size` (bcomp b true (+ size` y)))) ((bcomp b true (+ size` y)) & y) {pc = + 0} w))
+    ... | w = TransComp* (stacklem1 (Lemma3 a (bcomp b true (+ size` y)) prf)) (Lemma2'Aux1 {a} {b} {y} (stacklem2 (bcomp a false (+ size` (bcomp b true (+ size` y)))) ((bcomp b true (+ size` y)) & y) {pc = + 0} w))
     Lemma2' (a LT b) y {f} {s} {σ} z with stacklem1 {q = y} (Lemma1' {a} {acomp b & JMPLESS (size y) :: []} {σ} {s} {f})
     ... | w rewrite sym (&assoc (acomp a) (acomp b & JMPLESS (+ size` y) :: []) (y)) | sym (&assoc (acomp b) (JMPLESS (+ size` y) :: []) y) | sym (size`&+ {acomp b} {JMPLESS (+ size` y) :: []}) | sym (size`&+ {acomp a} {acomp b & JMPLESS (+ size` y) :: []}) with ArithExec {b} {acomp a} {JMPLESS (+ size` y) :: y} {σ} {aexe a σ , s} {suc f}
-    ... | w' rewrite size`&+ {acomp b} {JMPLESS (+ size` y) :: []} | sym (+assoc (size` (acomp b)) 1 f) = insertAtEnd* w (insertAtEnd w' (Lemma2'Aux2 {a} {b} z))
+    ... | w' rewrite size`&+ {acomp b} {JMPLESS (+ size` y) :: []} | sym (+assoc (size` (acomp b)) 1 f) = TransComp* w (TransComp w' (Lemma2'Aux2 {a} {b} z))
     
     -- b evaluates to false and flag is true -> don't jump
     Lemma3' : ∀ b Q {f s σ} → bexe b σ ≡ false  → (bcomp b true (size Q) & Q) ⊢⟦ config σ s (+ 0) , (fuelLLb b true σ (size Q)) ℕ+ f ⟧⇒*⟦ config σ s (size (bcomp b true (size Q))) , f ⟧
@@ -96,11 +96,11 @@ module Proofs.BExpSemantics where
     Lemma3' (a AND b) y {f} {s} {σ} z | no prf with ∧-false prf z | ¬-false prf
     ... | w | w' rewrite w' with stacklem1 {q = y} (Lemma3 a (bcomp b true (size y)) {fuelLLb b true σ (+ size` y) ℕ+ f} {s} {σ} w')
     ... | asem rewrite +assoc (fuelLLb a false σ (+ size` (bcomp b true (+ size` y)))) (fuelLLb b true σ (+ size` y)) f with stacklem2 (bcomp a false (+ size` (bcomp b true (+ size` y)))) _ (Lemma3' b y {f} {s} {σ} w)
-    ... | bsem rewrite &assoc (bcomp a false (+ size` (bcomp b true (+ size` y)))) (bcomp b true (size y)) y | size`&+ {bcomp a false (+ size` (bcomp b true (+ size` y)))} {bcomp b true (size y)} | +comm (size` (bcomp a false (+ size` (bcomp b true (+ size` y))))) (size` (bcomp b true (size y))) = insertAtEnd* asem bsem 
+    ... | bsem rewrite &assoc (bcomp a false (+ size` (bcomp b true (+ size` y)))) (bcomp b true (size y)) y | size`&+ {bcomp a false (+ size` (bcomp b true (+ size` y)))} {bcomp b true (size y)} | +comm (size` (bcomp a false (+ size` (bcomp b true (+ size` y))))) (size` (bcomp b true (size y))) = TransComp* asem bsem 
     Lemma3' (a LT b) y {f} {s} {σ} z rewrite sym (&assoc (acomp a) (acomp b & JMPLESS (size y) :: []) y) | sym (&assoc (acomp b) (JMPLESS (size y) :: []) y) | size`&+ {acomp a} {acomp b & JMPLESS (+ size` y) :: []} | sym (+assoc (size` (acomp a)) (size` (acomp b & JMPLESS (+ size` y) :: [])) f) with ArithExec {a} {[]} {acomp b & JMPLESS (+ size` y) :: y} {σ} {s} {(size` (acomp b) ℕ+ 1) ℕ+ f}
     ... | w rewrite +assoc (size` (acomp a)) (size` (acomp b) ℕ+ 1) f  | &[] {acomp a} | sym (+assoc (size` (acomp b)) 1 f) with ArithExec {b} {acomp a} {JMPLESS (size y) :: y} {σ} {aexe a σ , s} {suc f}
     ... | w' rewrite size`&+ {acomp b} {JMPLESS (size y) :: []} | +comm (size` (acomp b)) 1 | +comm (size` (acomp a)) (suc (size` (acomp b))) | sym (size`&+ {acomp b} {acomp a}) | &assoc (acomp a) (acomp b) (JMPLESS (size y) :: y) with stacklem2c (acomp a & acomp b) (JMPLESS (size y)) y
-    ... | p rewrite size`&+ {acomp a} {acomp b} | +comm (size` (acomp a)) (size` (acomp b)) | sym (size`&+ {acomp b} {acomp a}) = insertAtEnd* w (insertAtEnd (w') (⊢JMPLESSfalse {offset = size y}(p) (<-false z)))
+    ... | p rewrite size`&+ {acomp a} {acomp b} | +comm (size` (acomp a)) (size` (acomp b)) | sym (size`&+ {acomp b} {acomp a}) = TransComp* w (TransComp (w') (⊢JMPLESSfalse {offset = size y}(p) (<-false z)))
 
     
     Lemma2'Aux1 : ∀ {a b y σ s f} → ((bcomp a false (+ size` (bcomp b true (+ size` y))) & bcomp b true (+ size` y) & y) ⊢⟦ config σ s (+ size` (bcomp a false (+ size` (bcomp b true (+ size` y))))) , fuelLLb b true σ (+ size` y) ℕ+ f ⟧⇒*⟦ config σ s (+ (size` (bcomp b true (+ size` y) & y) ℕ+ size` (bcomp a false (+ size` (bcomp b true (+ size` y)))))) , f ⟧) → ((bcomp a false (+ size` (bcomp b true (+ size` y))) & bcomp b true (+ size` y)) & y) ⊢⟦ config σ s (size (bcomp a false (size (bcomp b true (+ size` y))))) , fuelLLb b true σ (+ size` y) ℕ+ f ⟧⇒*⟦ config σ s (+ size` ((bcomp a false (+ size` (bcomp b true (+ size` y))) & bcomp b true (+ size` y)) & y)) , f ⟧
