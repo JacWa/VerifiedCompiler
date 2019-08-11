@@ -39,7 +39,7 @@ module Lang.Stack where
     _::_ : Inst → Prog → Prog
 
   infixr 19 _&_
-  -- Programs composition.
+  -- Program composition.
   _&_ : Prog → Prog → Prog
   []        & ys = ys
   (x :: xs) & ys = x :: (xs & ys)

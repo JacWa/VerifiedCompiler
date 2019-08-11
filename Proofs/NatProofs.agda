@@ -145,6 +145,9 @@ module Proofs.NatProofs where
     ≤≥= z≤n z≤n = refl
     ≤≥= (s≤s i1) (s≤s i2) rewrite ≤≥= i1 i2 = refl
 
+    a+b+c≡c+a+b : ∀ a b c → a + b + c ≡ c + a + b
+    a+b+c≡c+a+b a b c rewrite +comm (a + b) c | +assoc c a b = refl
+
     NatLem1 : ∀ x y z → suc (x + y + z) ≡ x + (suc y) + z
     NatLem1 x y z rewrite sym (+swap {x} {y}) | sym (+assoc (suc x) y z) = refl
 

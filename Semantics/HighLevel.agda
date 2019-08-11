@@ -50,41 +50,25 @@ module Semantics.HighLevel where
                -------------------------------------------------------------------------------------------------------------
                                                 ⟦ (WHILE bool DO this) , s , suc f ⟧⇛⟦ s'' , f'' ⟧
 
+  -- Big step semantics on terminating IMP programs. --
+  data ⟦_,_,_⟧↓⟦_,_⟧ : IExp → Store → ℕ → Store → ℕ → Set where
+    Ski↓ : ∀ {s f} → ⟦ SKIP , s , suc f ⟧↓⟦ s , suc f ⟧
+    Ass↓ : ∀ {x n s f} → ⟦ x ≔ n , s , suc f ⟧↓⟦ (x ≔ aexe n s) ∷ s , f ⟧
+    Seq↓ : ∀ {this that s s' s'' f f' f''} → ⟦ this , s , suc f ⟧↓⟦ s' , f' ⟧ → ⟦ that , s' , f' ⟧↓⟦ s'' , f'' ⟧
+                                           --------------------------------------------------------------------
+                                                      → ⟦ this ⋯ that , s , suc f ⟧↓⟦ s'' , f'' ⟧
+    IfF↓ : ∀ {cond this that s s' f f'} →  (bexe cond s) ≡ false → ⟦ that , s , f ⟧↓⟦ s' , f' ⟧ → 
+                                       ----------------------------------------------------------------
+                                         ⟦ (IF cond THEN this ELSE that) , s , suc f ⟧↓⟦ s' , f' ⟧
+    IfT↓ : ∀ {cond this that s s' f f'} →  (bexe cond s) ≡ true → ⟦ this , s , f ⟧↓⟦ s' , f' ⟧ → 
+                                       ----------------------------------------------------------------
+                                         ⟦ (IF cond THEN this ELSE that) , s , suc f ⟧↓⟦ s' , f' ⟧
+    WhF↓ : ∀ {this cond s f} →                      (bexe cond s) ≡ false →
+                                        ------------------------------------------------
+                                         ⟦ (WHILE cond DO this) , s , suc f ⟧↓⟦ s , f ⟧            
+    WhT↓ : ∀ {this cond s s' s'' f f' f''} →
+      (bexe cond s) ≡ true → ⟦ this , s , f ⟧↓⟦ s' , f' ⟧ → ⟦ (WHILE cond DO this) , s' , f' ⟧↓⟦ s'' , f'' ⟧  
+   ---------------------------------------------------------------------------------------------------------
+                                  →  ⟦ (WHILE cond DO this) , s , suc f ⟧↓⟦ s'' , f'' ⟧   
 
 
-
-{-
-
-  
-  -- Big step semantics on AExp.
-  data ⟦_,_⟧ᴬ⇛_ : AExp → Store → ℕ → Set where
-
-    Nat : ∀ {n s} → ⟦ NAT n , s ⟧ᴬ⇛ n
-    Vrr : ∀ {x s} → ⟦ VAR x , s ⟧ᴬ⇛ (get-var x s)
-    Pls : ∀ {a b x y s} → ⟦ a , s ⟧ᴬ⇛ x → ⟦ b , s ⟧ᴬ⇛ y →
-                          --------------------------------
-                              ⟦ a + b , s ⟧ᴬ⇛ (x ℕ+ y)
-
-
-
-  A⇃ : ∀ {s} → (a : AExp) → ⟦ a , s ⟧ᴬ⇛ (aexe a s)
-  A⇃ (NAT n) = Nat
-  A⇃ (VAR x) = Vrr
-  A⇃ (a + b) = Pls (A⇃ a) (A⇃ b)
-
-
-  -- Big step semantics on BExp.
-  data ⟦_,_⟧ᴮ⇛_ : BExp → Store → Bool → Set where
-
-    Lit : ∀ {b s} → ⟦ BOOL b , s ⟧ᴮ⇛ b
-    Not : ∀ {e b s} → ⟦ e , s ⟧ᴮ⇛ b →
-                  ---------------------
-                   ⟦ NOT e , s ⟧ᴮ⇛ (! b)
-    And : ∀ {e₁ e₂ b₁ b₂ s} → ⟦ e₁ , s ⟧ᴮ⇛ b₁ → ⟦ e₂ , s ⟧ᴮ⇛ b₂ →
-                           ---------------------------------------
-                                 ⟦ e₁ AND e₂ , s ⟧ᴮ⇛ (b₁ ∧ b₂)
-    Lss : ∀ {a₁ a₂ n₁ n₂ s} → ⟦ a₁ , s ⟧ᴬ⇛ n₁ → ⟦ a₂ , s ⟧ᴬ⇛ n₂ →
-                           ---------------------------------------
-                                ⟦ a₁ LT a₂ , s ⟧ᴮ⇛ (n₁ < n₂)
-    
--}

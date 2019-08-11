@@ -170,6 +170,13 @@ module Misc.Base where
 
   
 
+
+  not-swap : ∀ {b b'} → not b ≡ b' → b ≡ not b'
+  not-swap {true} {false} _ = refl
+  not-swap {false} {true} _ = refl
+  not-swap {true} {true} ()
+  not-swap {false} {false} ()
+  
   _∨_ : Bool → Bool → Bool
   false ∨ b = b
   true ∨ b = true
@@ -251,3 +258,6 @@ module Misc.Base where
 
   +suc : ∀ x y → + suc x ≡ + suc y → + x ≡ + y
   +suc x y refl = refl
+
+  f≡t→⊥ : false ≡ true → ⊥
+  f≡t→⊥ ()

@@ -2,6 +2,7 @@ module Proofs.ArithSemantics where
 
   open import Proofs.NatProofs
   open import Proofs.Stack
+  open import Proofs.Stack.Determinism
 
   open import Semantics.LowLevel
 
@@ -70,7 +71,7 @@ module Proofs.ArithSemantics where
   ... | asem'' rewrite size`&+ {acomp a} {this} = asem''
 
   -- Given enough fuel then the final program counter will be equal to the size of the arithmetic expression + 1 for the store instruction.
-  ArithFullExec : ∀ {n x σ f pc'} → (acomp n & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp n) ℕ+ suc f) ⟧⇒*⟦ config ((x ≔ aexe n σ) ∷ σ) $ pc' , suc f ⟧ → pc' ≡ size (acomp n & STORE x :: [])
+  ArithFullExec : ∀ {n x σ f pc'} → (acomp n & STORE x :: []) ⊢⟦ config σ $ (+ 0) , suc (size` (acomp n) ℕ+ f) ⟧⇒*⟦ config ((x ≔ aexe n σ) ∷ σ) $ pc' , f ⟧ → pc' ≡ size (acomp n & STORE x :: [])
   ArithFullExec {n} {x} sem rewrite size`&+ {acomp n} {STORE x :: []} | +comm (size` (acomp n)) 1 = deterministic-pc (Lemma1 {n}) sem
 
   
