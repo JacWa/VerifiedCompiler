@@ -13,7 +13,7 @@ module Base.Fuel where
   open import Semantics.HighLevel
   open import Semantics.LowLevel
 
-  open import Proofs.BigStep.Base
+  open import Proofs.BigStep
 
   open import Function using (_∘_)
 
@@ -41,11 +41,11 @@ module Base.Fuel where
   fuelLLBS' {_ ≔ a} Assign = suc (size` (acomp a))
   fuelLLBS' (Seq semhl semhl') = fuelLLBS' semhl ℕ+ fuelLLBS' semhl'
   fuelLLBS' {IF b THEN I ELSE I'} {σ = σ} (IfFalse x semhl) = fuelLLb b false σ (size (compile I) z+ + 1) ℕ+ fuelLLBS' semhl
-  fuelLLBS' {IF b THEN I ELSE I'} {σ = σ} (IfTrue x semhl) with BSLem3 semhl
+  fuelLLBS' {IF b THEN I ELSE I'} {σ = σ} (IfTrue x semhl) with BSLem2 semhl
   ... | true  = fuelLLb b false σ (size (compile I) z+ + 1) ℕ+ fuelLLBS' semhl ℕ+ 1
   ... | false = fuelLLb b false σ (size (compile I) z+ + 1) ℕ+ fuelLLBS' semhl
   fuelLLBS' {WHILE b DO c} {σ = σ} (WhileFalse x) = fuelLLb b false σ (size (compile c) z+ + 1)
-  fuelLLBS' {WHILE b DO c} {σ = σ} (WhileTrue {f' = f'} x csem semhl') with BSLem3 csem
+  fuelLLBS' {WHILE b DO c} {σ = σ} (WhileTrue {f' = f'} x csem semhl') with BSLem2 csem
   -- If fuel runs out during the exection of c, then the 1 fuel for the jump is not needed.
   ... | false = fuelLLb b false σ (size (compile c) z+ + 1) ℕ+ (fuelLLBS' csem ℕ+ fuelLLBS' semhl')
   ... | true = fuelLLb b false σ (size (compile c) z+ + 1) ℕ+ (fuelLLBS' csem ℕ+ (1 ℕ+ fuelLLBS' semhl'))

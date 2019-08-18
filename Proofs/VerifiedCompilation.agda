@@ -27,7 +27,7 @@ module Proofs.VerifiedCompilation where
   open import Proofs.ArithSemantics
   open import Proofs.BExpSemantics
   open import Proofs.Basic
-  open import Proofs.BigStep.Base
+  open import Proofs.BigStep
   open import Proofs.NatProofs
   open import Proofs.Stack
   open import Proofs.Stack.Determinism
@@ -93,7 +93,7 @@ module Proofs.VerifiedCompilation where
     = sem-SML~
     
   Terminating {(IF cond THEN this ELSE that)} (IfT↓ {f' = f'} cond≡t sem-this)
-    with BSLem7 sem-this
+    with BSLem5 sem-this
   ... | p1 rewrite p1
     with Lemma3 cond (compile this & JMP (+ size` (compile that)) :: []) {fuelLLBS' (convert sem-this)} {$} cond≡t 
   ... | sem-cond-SML
@@ -143,7 +143,7 @@ module Proofs.VerifiedCompilation where
     = sem-cond-SML~
     
   Terminating {WHILE cond DO this} (WhT↓ {f' = f'} {f''} cond≡t sem-this sem-rest)
-    with BSLem7 sem-this
+    with BSLem5 sem-this
   ... | p1 rewrite p1
     with Lemma3 cond (compile this & JMP (neg (+ (size` (bcomp cond false (+ (size` (compile this) ℕ+ 1))) ℕ+ size` (compile this) ℕ+ 1))) :: []) {(fuelLLBS' (convert sem-this) ℕ+ suc (fuelLLBS' (convert sem-rest)))} {$} cond≡t 
   ... | sem-cond-SML
@@ -187,7 +187,7 @@ module Proofs.VerifiedCompilation where
     
   Lemma (this ⋯ that) (Seq {f' = f'} {f''} sem-this sem-that)
   -- Split cases where "this" fully executes or runs out of fuel.
-     with inspect (BSLem3 sem-this)
+     with inspect (BSLem2 sem-this)
       
   -- "this" fully executes.
   ... | true with≡ proof
@@ -218,7 +218,7 @@ module Proofs.VerifiedCompilation where
   -- Fuel runs out while executing "this".
   Lemma (this ⋯ that) (Seq sem-this sem-that) | false with≡ proof
   -- Rewrite by proof that [f' ≡ 0].
-    with BSLem6 sem-this proof
+    with BSLem4 sem-this proof
   Lemma (this ⋯ that) (Seq sem-this Empty) | false with≡ proof | refl 
   -- Generate the semantics for executing "this".
     with Lemma this sem-this
@@ -250,7 +250,7 @@ module Proofs.VerifiedCompilation where
   Lemma (IF cond THEN this ELSE that) {σ} (IfTrue {f' = f'} cond≡t sem-this)
   
   -- Split case on whether there is enough fuel to fully execute "this".
-    with inspect (BSLem3 sem-this)
+    with inspect (BSLem2 sem-this)
     
   -- Case where there is enough fuel to execute "this".
   ... | true with≡ proof rewrite proof 
@@ -300,7 +300,7 @@ module Proofs.VerifiedCompilation where
     with stacklem1 {q = compile that} cond-sem
   ... | cond-sem' 
   -- Rewrite by proof that [f' ≡ 0].
-    with BSLem6 sem-this proof
+    with BSLem4 sem-this proof
   ... | refl
   -- ⬐ Generate the semantics for executing the else-block, "this".
     with Lemma this sem-this
@@ -329,7 +329,7 @@ module Proofs.VerifiedCompilation where
                     {JMP (neg (+ (size` (bcomp cond false (+ (size` (compile this) ℕ+ 1))) ℕ+ size` (compile this) ℕ+ 1))) :: []}
 
   -- Split case on whether the first iteration of "this" has enough fuel to fully execute.
-    with inspect (BSLem3 sem-this)
+    with inspect (BSLem2 sem-this)
 
   -- Case where there is enough fuel to fully execute "this".
   ... | true with≡ p1 rewrite p1
@@ -396,7 +396,7 @@ module Proofs.VerifiedCompilation where
   -- Case where there is not enough fuel to fully execute "this".
   Lemma (WHILE cond DO this) (WhileTrue {f' = f'} {f''} cond≡t sem-this sem-rest) | cond-sem | false with≡ p1 rewrite p1
     -- ⬐ Rewrite by proof that f' ≡ 0.
-    with BSLem6 sem-this p1
+    with BSLem4 sem-this p1
   Lemma (WHILE cond DO this) {σ} (WhileTrue cond≡t sem-this Empty) | cond-sem | _ | refl
     -- ⬐ Generate semantics for the execution of "this".
     with Lemma this sem-this
